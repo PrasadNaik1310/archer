@@ -1,68 +1,56 @@
 package story
 
 import (
+	"PrasadNaik1310/archer/internal/db/mongo"
 	"PrasadNaik1310/archer/internal/models"
-
-	"github.com/google/uuid"
+	"context"
 )
 
-type SimilarChunk struct {
-	Chunk   models.Chunk
-	Score   float64 // embedding similarity
-	EventID string
+// Service handles the business logic for Stories
+type Service struct {
+	repo      *mongo.StoryRepository
+	eventRepo *mongo.EventRepository
+	chunkRepo *mongo.ChunkRepository
 }
 
-func AssignEvent(newChunk models.Chunk, candidates []SimilarChunk) string {
-
-	bestScore := 0.0
-	bestEventID := ""
-
-	for _, c := range candidates {
-
-		entityOverlap := calculateEntityOverlap(newChunk.Entities, c.Chunk.Entities)
-
-		score := (0.7 * c.Score) + (0.3 * entityOverlap)
-
-		if score > bestScore {
-			bestScore = score
-			bestEventID = c.EventID
-		}
+// NewService creates a new instance of the Story Service
+func NewService(r *mongo.StoryRepository, e *mongo.EventRepository, c *mongo.ChunkRepository) *Service {
+	return &Service{
+		repo:      r,
+		eventRepo: e,
+		chunkRepo: c,
 	}
-
-	// threshold decision
-	if bestScore > 0.75 {
-		return bestEventID
-	}
-
-	// new event
-	return generateEventID()
 }
 
-func generateEventID() string {
-	return "event_" + uuid.New().String()
-}
-func AssignStory(newEvent models.Event, existingStories []models.Story) string {
-
-	bestScore := 0.0
-	bestStoryID := ""
-
-	for _, s := range existingStories {
-		score := calculateEntityOverlap(newEvent.Entities, s.Entities)
-
-		if score > bestScore {
-			bestScore = score
-			bestStoryID = s.StoryID
-		}
+// GetFullStory fetches a story, all its events, and all chunks for those events
+func (s *Service) GetFullStory(ctx context.Context, storyID string) (*models.FullStoryResponse, error) {
+	// 1. Get the base Story info
+	story, err := s.repo.GetByID(ctx, storyID)
+	if err != nil {
+		return nil, err
 	}
 
-	// threshold
-	if bestScore > 0.5 {
-		return bestStoryID
+	// 2. Get all Events linked to this Story
+	events, err := s.eventRepo.GetByStoryID(ctx, storyID)
+	if err != nil {
+		return nil, err
 	}
 
-	// new story
-	return generateStoryID()
-}
-func generateStoryID() string {
-	return "story_" + uuid.New().String()
+	// 3. For every Event, find the Chunks (Articles) that belong to it
+	var timeline []models.EventWithChunks
+	for _, event := range events {
+		// We use the event's ID to find its chunks
+		chunks, _ := s.chunkRepo.GetByEventID(ctx, event.EventID)
+
+		timeline = append(timeline, models.EventWithChunks{
+			Event:  event,
+			Chunks: chunks,
+		})
+	}
+
+	// 4. Return the complete package
+	return &models.FullStoryResponse{
+		Story:  *story,
+		Events: timeline,
+	}, nil
 }

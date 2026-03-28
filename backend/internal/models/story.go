@@ -10,3 +10,14 @@ type Story struct {
 	CreatedAt time.Time `json:"created_at" bson:"created_at"`
 	UpdatedAt time.Time `json:"updated_at" bson:"updated_at"`
 }
+
+// Add these to internal/models/story.go
+type FullStoryResponse struct {
+	Story  Story             `json:"story"`
+	Events []EventWithChunks `json:"events"`
+}
+
+type EventWithChunks struct {
+	Event  Event   `json:"event"`
+	Chunks []Chunk `json:"chunks"`
+}
