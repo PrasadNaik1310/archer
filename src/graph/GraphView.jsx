@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import ReactFlow, { Background, useReactFlow, ReactFlowProvider } from 'reactflow';
 import 'reactflow/dist/style.css';
 
@@ -7,12 +7,10 @@ import { useStoryStore } from '../store/useStoryStore';
 
 const nodeTypes = { custom: GraphNode };
 
-// Math helper to generate coordinates in a circle around a parent
-const generateRadialPositions = (parentNode, childrenNodes, radius = 250) => {
+const generateRadialPositions = (parentNode, childrenNodes, radius) => {
   const angleStep = (2 * Math.PI) / childrenNodes.length;
-  
   return childrenNodes.map((child, index) => {
-    const angle = index * angleStep - Math.PI / 2; // Start at the top (-90 deg)
+    const angle = index * angleStep - Math.PI / 2;
     return {
       ...child,
       position: {
@@ -26,58 +24,81 @@ const generateRadialPositions = (parentNode, childrenNodes, radius = 250) => {
 const AnimatedRadialFlow = ({ rawNodes, rawEdges }) => {
   const { fitView, setCenter } = useReactFlow();
   const { activeCategoryId, expandedNodes, activeLeafId } = useStoryStore();
+  
+  // NEW: Track which node is currently being hovered
+  const [hoveredNodeId, setHoveredNodeId] = useState(null);
 
-  // 1. DYNAMIC RADIAL LAYOUT CALCULATION
   const { nodes, edges } = useMemo(() => {
     if (!activeCategoryId) return { nodes: [], edges: [] };
 
     let visibleNodes = [];
     const visibleEdges = [];
+    const processedParents = new Set(); // Prevent duplicates
 
-    // Find the root category node and anchor it at the center
     const rootNode = rawNodes.find(n => n.id === activeCategoryId);
     if (!rootNode) return { nodes: [], edges: [] };
     
-    rootNode.position = { x: 0, y: 0 };
-    visibleNodes.push(rootNode);
+    visibleNodes.push({ ...rootNode, position: { x: 0, y: 0 } });
 
-    // Iteratively place children of expanded nodes
-    expandedNodes.forEach(expandedId => {
-      const parentNode = visibleNodes.find(n => n.id === expandedId);
+    // Helper function to process children dynamically
+    const processNodeChildren = (parentId, isGhost) => {
+      if (processedParents.has(parentId)) return;
+      
+      const parentNode = visibleNodes.find(n => n.id === parentId);
       if (!parentNode) return;
 
-      // Find all children for this expanded parent
-      const childEdges = rawEdges.filter(e => e.source === expandedId);
+      const childEdges = rawEdges.filter(e => e.source === parentId);
       const childNodeIds = childEdges.map(e => e.target);
       const childrenNodes = rawNodes.filter(n => childNodeIds.includes(n.id));
 
-      // Calculate radial positions for these children
-      const positionedChildren = generateRadialPositions(
-        parentNode, 
-        childrenNodes, 
-        parentNode.data.level === 0 ? 350 : 200 // Larger radius for main categories
-      );
+      if (childrenNodes.length > 0) {
+        const dynamicRadius = Math.max(120, 350 - (parentNode.data.level * 100));
+        const positionedChildren = generateRadialPositions(parentNode, childrenNodes, dynamicRadius);
+        
+        positionedChildren.forEach(child => {
+          visibleNodes.push({ ...child, data: { ...child.data, isGhost } });
+        });
 
-      visibleNodes = [...visibleNodes, ...positionedChildren];
-      visibleEdges.push(...childEdges);
-    });
+        childEdges.forEach(edge => {
+          visibleEdges.push({ ...edge, data: { ...edge.data, isGhost } });
+        });
+      }
+      processedParents.add(parentId);
+    };
 
-    return { nodes: visibleNodes, edges: visibleEdges };
-  }, [activeCategoryId, expandedNodes, rawNodes, rawEdges]);
+    // 1. Process all permanently clicked/expanded nodes
+    expandedNodes.forEach(id => processNodeChildren(id, false));
 
-  // 2. CAMERA MOVEMENT LOGIC
+    // 2. NEW: Process the hovered node to generate ghost previews
+    if (hoveredNodeId && !expandedNodes.includes(hoveredNodeId)) {
+      processNodeChildren(hoveredNodeId, true);
+    }
+
+    // Inject dynamic leaf detection
+    const finalNodes = visibleNodes.map(node => ({
+      ...node,
+      data: { 
+        ...node.data, 
+        hasChildren: rawEdges.some(e => e.source === node.id) 
+      }
+    }));
+
+    return { nodes: finalNodes, edges: visibleEdges };
+  }, [activeCategoryId, expandedNodes, rawNodes, rawEdges, hoveredNodeId]);
+
   useEffect(() => {
     if (activeLeafId) {
-      // If a leaf is clicked, zoom into it. (The wrapper in StoryPage shifts the canvas left)
       const leafNode = nodes.find(n => n.id === activeLeafId);
       if (leafNode) {
         setCenter(leafNode.position.x, leafNode.position.y, { zoom: 1.2, duration: 800 });
       }
     } else if (nodes.length > 0) {
-      // Otherwise, keep the whole expanding cluster neatly in view
-      fitView({ padding: 0.3, duration: 800 });
+      const timer = setTimeout(() => {
+        fitView({ padding: 0.4, duration: 800 });
+      }, 50);
+      return () => clearTimeout(timer);
     }
-  }, [nodes, activeLeafId, fitView, setCenter]);
+  }, [nodes.length, activeLeafId, fitView, setCenter]);
 
   return (
     <ReactFlow 
@@ -85,15 +106,23 @@ const AnimatedRadialFlow = ({ rawNodes, rawEdges }) => {
       edges={edges.map(e => ({ 
         ...e, 
         animated: true, 
-        style: { stroke: '#94a3b8', strokeWidth: 2 } // Light theme edge styling
+        style: { 
+          stroke: '#737373', 
+          strokeWidth: 2,
+          // Fade out the connecting lines for ghost nodes
+          opacity: e.data?.isGhost ? 0.2 : 1,
+          transition: 'opacity 0.3s ease'
+        } 
       }))} 
       nodeTypes={nodeTypes} 
       proOptions={{ hideAttribution: true }}
-      minZoom={0.2}
+      minZoom={0.1}
       maxZoom={2}
+      // NEW: Mouse events to trigger the blur effect
+      onNodeMouseEnter={(_, node) => setHoveredNodeId(node.id)}
+      onNodeMouseLeave={() => setHoveredNodeId(null)}
     >
-      {/* Light, professional background grid */}
-      <Background color="#cbd5e1" variant="dots" gap={30} size={2} />
+      <Background color="#d4d4d4" variant="dots" gap={40} size={2} className="opacity-60" />
     </ReactFlow>
   );
 };
