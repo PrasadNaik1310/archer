@@ -1,15 +1,12 @@
 package models
 
-import (
-	"time"
-
-	"go.mongodb.org/mongo-driver/bson/primitive"
-)
+import "time"
 
 type Story struct {
-	ID        primitive.ObjectID `bson:"_id,omitempty" json:"id"`
-	Title     string             `bson:"title" json:"title"`
-	Entities  []string           `bson:"entities" json:"entities"`
-	CreatedAt time.Time          `bson:"created_at" json:"created_at"`
-	UpdatedAt time.Time          `bson:"updated_at" json:"updated_at"`
+    // We use string here so we can control the IDs
+    StoryID   string    `json:"story_id" bson:"story_id"` 
+    Title     string    `json:"title" bson:"title"`
+    Entities  []string  `json:"entities" bson:"entities"`
+    CreatedAt time.Time `json:"created_at" bson:"created_at"`
+    UpdatedAt time.Time `json:"updated_at" bson:"updated_at"`
 }

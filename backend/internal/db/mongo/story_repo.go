@@ -5,6 +5,7 @@ import (
 	"time"
 	"PrasadNaik1310/archer/internal/models"
 	"go.mongodb.org/mongo-driver/v2/mongo"
+	
 )
 
 type StoryRepository struct {
@@ -22,4 +23,10 @@ func (r *StoryRepository) Create(ctx context.Context, story *models.Story) error
 	story.UpdatedAt = time.Now()
 	_, err := r.collection.InsertOne(ctx, story)
 	return err
+}
+
+func (r *StoryRepository) GetByID(ctx context.Context, storyID string) (*models.Story, error) {
+	var story models.Story
+	err := r.collection.FindOne(ctx, map[string]string{"story_id": storyID}).Decode(&story)
+	return &story, err
 }

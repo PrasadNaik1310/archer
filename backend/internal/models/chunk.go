@@ -1,18 +1,14 @@
 package models
 
-import (
-	"time"
-
-	"go.mongodb.org/mongo-driver/bson/primitive"
-)
+import "time"
 
 type Chunk struct {
-	ID          primitive.ObjectID `bson:"_id,omitempty" json:"id"`
-	EventID     primitive.ObjectID `bson:"event_id" json:"event_id"`
-	StoryID     primitive.ObjectID `bson:"story_id" json:"story_id"`
-	Text        string             `bson:"text" json:"text"`
-	Summary     string             `bson:"summary" json:"summary"`
-	Sentiment   string             `bson:"sentiment" json:"sentiment"`
-	EmbeddingID string             `bson:"embedding_id" json:"embedding_id"`
-	Timestamp   time.Time          `bson:"timestamp" json:"timestamp"`
+	ChunkID     string    `json:"chunk_id" bson:"chunk_id"`
+	EventID     string    `json:"event_id" bson:"event_id"`
+	Text        string    `json:"text" bson:"text"`
+	Summary     string    `json:"summary" bson:"summary"`
+	Entities    []string  `json:"entities" bson:"entities"`
+	Sentiment   string    `json:"sentiment" bson:"sentiment"`
+	EmbeddingID string    `json:"embedding_id" bson:"embedding_id"`
+	Timestamp   time.Time `json:"timestamp" bson:"timestamp"`
 }
