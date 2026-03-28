@@ -5,6 +5,7 @@ import (
 	"log"
 	"github.com/joho/godotenv"
 	"PrasadNaik1310/archer/internal/db/mongo"
+	
 )
 
 func main() {
@@ -21,6 +22,8 @@ func main() {
 	}
 
 	fmt.Println("🚀 Archer Backend is officially LIVE!")
+
+	
 	
 	// This prevents the program from closing immediately
 	_ = client
