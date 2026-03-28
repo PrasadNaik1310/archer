@@ -1,57 +1,79 @@
+import React from 'react';
 import { Handle, Position } from 'reactflow';
 import { useStoryStore } from '../store/useStoryStore';
+import { Layers, Zap, ShieldCheck } from 'lucide-react';
 
-export const GraphNode = ({ data }) => {
-  const { activeEntities } = useStoryStore();
+export const GraphNode = ({ data, id }) => {
+  const { expandNode, openLeafTimeline, expandedNodes, activeLeafId } = useStoryStore();
   
-  // 1. Is this a node inside the inner Entity Map? (Companies, People, etc.)
-  const isEntityMap = ['company', 'person', 'org', 'regulator'].includes(data.type);
-  
-  // Highlight logic for the Entity Map
-  const isHighlighting = activeEntities.length > 0;
-  const isTarget = activeEntities.includes(data.label);
-  const opacityClass = (isEntityMap && isHighlighting && !isTarget) ? 'opacity-30 grayscale' : 'opacity-100';
-  const glowClass = (isEntityMap && isTarget) ? 'ring-2 ring-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.2)] scale-105' : '';
+  const isCategory = data.level === 0;
+  const isLeaf = data.isLeaf;
+  const isExpanded = expandedNodes.includes(id);
+  const isActiveLeaf = activeLeafId === id;
 
-  // 2. Dynamic Styles based on what kind of bubble this is
-  let nodeStyle = "";
-  if (data.type === 'category') {
-    // Massive, clean hub nodes
-    nodeStyle = "px-8 py-4 bg-white border-2 border-slate-200 rounded-full shadow-sm";
-  } else if (data.type === 'topic') {
-    // Subtopic pills
-    nodeStyle = "px-6 py-3 bg-slate-50 border border-slate-200 rounded-2xl shadow-sm";
-  } else if (data.isStory) {
-    // The clickable leaf nodes (Stories) - Given a blue tint to show interactivity
-    nodeStyle = "px-6 py-4 bg-blue-50 border-2 border-blue-200 rounded-xl shadow-sm hover:shadow-md hover:border-blue-400 transition-all cursor-pointer group";
-  } else {
-    // Default Entity Cards (The relationship map)
-    nodeStyle = "px-4 py-3 bg-white border border-slate-200 rounded-lg shadow-sm";
-  }
+  const handleClick = (e) => {
+    e.stopPropagation();
+    if (isLeaf) {
+      openLeafTimeline(id); // Opens the timeline in the same flow
+    } else {
+      expandNode(id); // Sprouts the child nodes radially
+    }
+  };
 
   return (
-    <div className={`transition-all duration-500 text-center ${nodeStyle} ${opacityClass} ${glowClass}`}>
-      {/* Invisible Handles so the lines can connect */}
-      <Handle type="target" position={Position.Top} className="!bg-transparent !border-none" />
+    <div 
+      onClick={handleClick}
+      className={`group relative flex flex-col items-center transition-all duration-500 cursor-pointer
+        ${isActiveLeaf ? 'scale-110' : 'hover:scale-105'}
+      `}
+    >
+      {/* Invisible target handle for incoming lines */}
+      <Handle type="target" position={Position.Top} className="opacity-0" />
       
-      {/* Small label for entities only (e.g., 'COMPANY' or 'PERSON') */}
-      {isEntityMap && (
-        <p className="text-[8px] uppercase text-slate-400 font-bold tracking-widest">{data.type}</p>
-      )}
+      {/* 1. THE NODE BUBBLE */}
+      <div 
+        className={`flex items-center justify-center rounded-full shadow-lg transition-all duration-300 border-2
+          ${isCategory 
+            ? 'w-24 h-24 bg-white border-blue-500 text-3xl z-20 shadow-blue-500/20' 
+            : isLeaf 
+              ? 'w-16 h-16 bg-slate-50 border-emerald-500 z-10 hover:bg-emerald-50' 
+              : 'w-20 h-20 bg-white border-slate-300 z-10 hover:border-blue-400'}
+          ${isActiveLeaf ? 'ring-4 ring-emerald-500/30' : ''}
+        `}
+      >
+        {isCategory && '🏢'}
+        {!isCategory && !isLeaf && <Layers size={24} className="text-slate-400 group-hover:text-blue-500 transition-colors" />}
+        {isLeaf && <Zap size={20} className="text-emerald-500" />}
+      </div>
       
-      {/* Main Title */}
-      <p className={`font-bold mt-1 ${data.type === 'category' ? 'text-lg text-slate-800' : data.isStory ? 'text-blue-800' : 'text-sm text-slate-700'}`}>
-        {data.label}
-      </p>
-
-      {/* Call to action text that appears when hovering over a Story Node */}
-      {data.isStory && (
-        <p className="text-[10px] text-blue-500 font-bold uppercase tracking-widest mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
-          Explore Story →
+      {/* 2. THE LABEL PANEL */}
+      <div className={`mt-3 px-4 py-2 rounded-xl bg-white border border-slate-200 shadow-sm text-center min-w-[120px] transition-all duration-300 group-hover:shadow-md
+        ${isActiveLeaf ? 'border-emerald-500 bg-emerald-50' : ''}
+      `}>
+        <p className="text-xs font-bold text-slate-800 uppercase tracking-wider leading-tight">
+          {data.label}
         </p>
-      )}
+        
+        {/* Source Verification Badge for Leaf Nodes */}
+        {isLeaf && (
+          <div className="mt-1.5 flex items-center justify-center gap-1 text-[9px] font-bold text-emerald-600 uppercase tracking-widest bg-emerald-500/10 px-2 py-0.5 rounded-full">
+            <ShieldCheck size={10} /> 
+            {data.sourceCount || 12} Sources
+          </div>
+        )}
 
-      <Handle type="source" position={Position.Bottom} className="!bg-transparent !border-none" />
+        {/* Expand prompt for branches */}
+        {!isLeaf && !isExpanded && (
+          <p className="text-[9px] font-bold text-slate-400 uppercase mt-1 group-hover:text-blue-500">
+            Click to Expand
+          </p>
+        )}
+      </div>
+
+      {/* Invisible source handle for outgoing lines */}
+      <Handle type="source" position={Position.Bottom} className="opacity-0" />
     </div>
   );
 };
+
+export default GraphNode;

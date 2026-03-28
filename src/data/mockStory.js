@@ -1,128 +1,135 @@
 // ==========================================
-// PART 1: THE INFINITE CANVAS MAP (Nodes & Edges)
+// PART 1: THE CLUSTER MAP (Nodes & Edges)
 // ==========================================
+
 export const canvasNodes = [
-  // Level 1: Categories
-  { id: 'cat-corporate', position: { x: 0, y: 0 }, data: { label: 'Corporate Governance', type: 'category' } },
-  { id: 'cat-markets', position: { x: 0, y: 600 }, data: { label: 'Markets & Finance', type: 'category' } },
-  { id: 'cat-startups', position: { x: 800, y: 0 }, data: { label: 'Startups & Tech', type: 'category' } },
+  // -----------------------------------------------------------------
+  // LEVEL 0: CATEGORY HUBS (The 3 Main Starting Points)
+  // -----------------------------------------------------------------
+  { id: 'cat-corporate', type: 'custom', data: { label: 'Corporate Governance', level: 0 } },
+  { id: 'cat-markets', type: 'custom', data: { label: 'Markets & Finance', level: 0 } },
+  { id: 'cat-tech', type: 'custom', data: { label: 'Tech & AI', level: 0 } },
 
-  // Level 2: Subtopics
-  { id: 'sub-fraud', position: { x: -300, y: 200 }, data: { label: 'Financial Irregularities', type: 'topic' } },
-  { id: 'sub-regulatory', position: { x: 300, y: 200 }, data: { label: 'Regulatory Crackdowns', type: 'topic' } },
+  // -----------------------------------------------------------------
+  // LEVEL 1: TOPIC CLUSTERS 
+  // -----------------------------------------------------------------
+  // Under Corporate Governance
+  { id: 't-fraud', type: 'custom', data: { label: 'Financial Fraud', level: 1, parent: 'cat-corporate' } },
+  { id: 't-board', type: 'custom', data: { label: 'Board Conflicts', level: 1, parent: 'cat-corporate' } },
+  { id: 't-reg', type: 'custom', data: { label: 'Regulatory Shifts', level: 1, parent: 'cat-corporate' } },
+  { id: 't-esg', type: 'custom', data: { label: 'ESG Compliance', level: 1, parent: 'cat-corporate' } },
 
-  // Level 3: Leaf Nodes (Stories)
-  { id: 'node-adani', position: { x: -450, y: 400 }, data: { label: 'The Adani-Hindenburg Saga', type: 'story', isStory: true, storyId: 'adani-2024' } },
-  { id: 'node-paytm', position: { x: 450, y: 400 }, data: { label: 'The Paytm RBI Ban', type: 'story', isStory: true, storyId: 'paytm-2024' } },
+  // Under Markets & Finance
+  { id: 't-crypto', type: 'custom', data: { label: 'Crypto Assets', level: 1, parent: 'cat-markets' } },
+  { id: 't-ipo', type: 'custom', data: { label: 'IPO Landscape', level: 1, parent: 'cat-markets' } },
+  { id: 't-macro', type: 'custom', data: { label: 'Macro Inflation', level: 1, parent: 'cat-markets' } },
+
+  // Under Tech & AI
+  { id: 't-genai', type: 'custom', data: { label: 'Generative AI', level: 1, parent: 'cat-tech' } },
+  { id: 't-chips', type: 'custom', data: { label: 'Semiconductors', level: 1, parent: 'cat-tech' } },
+  { id: 't-cyber', type: 'custom', data: { label: 'Cyber Warfare', level: 1, parent: 'cat-tech' } },
+  { id: 't-space', type: 'custom', data: { label: 'Space Economy', level: 1, parent: 'cat-tech' } },
+
+  // -----------------------------------------------------------------
+  // LEVEL 2: LEAF STORIES (The Clickable Timelines)
+  // -----------------------------------------------------------------
+  
+  // ---> Fraud Stories
+  { id: 's-adani', type: 'custom', data: { label: 'Adani Hindenburg Saga', level: 2, isLeaf: true, parent: 't-fraud', sourceCount: 48 } },
+  { id: 's-wirecard', type: 'custom', data: { label: 'Wirecard Collapse', level: 2, isLeaf: true, parent: 't-fraud', sourceCount: 112 } },
+  { id: 's-evergrande', type: 'custom', data: { label: 'Evergrande Liquidation', level: 2, isLeaf: true, parent: 't-fraud', sourceCount: 89 } },
+
+  // ---> Board Conflict Stories
+  { id: 's-openai', type: 'custom', data: { label: 'OpenAI Board Coup', level: 2, isLeaf: true, parent: 't-board', sourceCount: 205 } },
+  { id: 's-disney', type: 'custom', data: { label: 'Disney Proxy Fight', level: 2, isLeaf: true, parent: 't-board', sourceCount: 64 } },
+  { id: 's-starbucks', type: 'custom', data: { label: 'Starbucks Union Clash', level: 2, isLeaf: true, parent: 't-board', sourceCount: 32 } },
+
+  // ---> Regulatory Stories
+  { id: 's-paytm', type: 'custom', data: { label: 'Paytm RBI Ban', level: 2, isLeaf: true, parent: 't-reg', sourceCount: 76 } },
+  { id: 's-binance', type: 'custom', data: { label: 'Binance DOJ Settlement', level: 2, isLeaf: true, parent: 't-reg', sourceCount: 140 } },
+
+  // ---> Crypto Stories
+  { id: 's-ftx', type: 'custom', data: { label: 'FTX Bankruptcy', level: 2, isLeaf: true, parent: 't-crypto', sourceCount: 310 } },
+  { id: 's-etf', type: 'custom', data: { label: 'Bitcoin ETF Approval', level: 2, isLeaf: true, parent: 't-crypto', sourceCount: 185 } },
+
+  // ---> Gen AI Stories
+  { id: 's-sora', type: 'custom', data: { label: 'Sora Video Launch', level: 2, isLeaf: true, parent: 't-genai', sourceCount: 94 } },
+  { id: 's-gemini', type: 'custom', data: { label: 'Gemini Pro Rollout', level: 2, isLeaf: true, parent: 't-genai', sourceCount: 120 } },
+  { id: 's-nyt', type: 'custom', data: { label: 'NYT vs OpenAI Lawsuit', level: 2, isLeaf: true, parent: 't-genai', sourceCount: 88 } },
+
+  // ---> Semiconductor Stories
+  { id: 's-nvidia', type: 'custom', data: { label: 'Nvidia $2T Valuation', level: 2, isLeaf: true, parent: 't-chips', sourceCount: 250 } },
+  { id: 's-tsmc', type: 'custom', data: { label: 'TSMC Arizona Delay', level: 2, isLeaf: true, parent: 't-chips', sourceCount: 45 } },
+  { id: 's-arm', type: 'custom', data: { label: 'ARM Architecture Shift', level: 2, isLeaf: true, parent: 't-chips', sourceCount: 60 } },
 ];
 
 export const canvasEdges = [
-  // Connecting Categories to Subtopics
-  { id: 'e-corp-fraud', source: 'cat-corporate', target: 'sub-fraud', animated: true },
-  { id: 'e-corp-reg', source: 'cat-corporate', target: 'sub-regulatory', animated: true },
-  
-  // Connecting Subtopics to Stories
-  { id: 'e-fraud-adani', source: 'sub-fraud', target: 'node-adani' },
-  { id: 'e-reg-paytm', source: 'sub-regulatory', target: 'node-paytm' },
+  // Connect Corporate Hub to Topics
+  { id: 'e-c-f', source: 'cat-corporate', target: 't-fraud' },
+  { id: 'e-c-b', source: 'cat-corporate', target: 't-board' },
+  { id: 'e-c-r', source: 'cat-corporate', target: 't-reg' },
+  { id: 'e-c-e', source: 'cat-corporate', target: 't-esg' },
+
+  // Connect Markets Hub to Topics
+  { id: 'e-m-c', source: 'cat-markets', target: 't-crypto' },
+  { id: 'e-m-i', source: 'cat-markets', target: 't-ipo' },
+  { id: 'e-m-m', source: 'cat-markets', target: 't-macro' },
+
+  // Connect Tech Hub to Topics
+  { id: 'e-t-g', source: 'cat-tech', target: 't-genai' },
+  { id: 'e-t-c', source: 'cat-tech', target: 't-chips' },
+  { id: 'e-t-cy', source: 'cat-tech', target: 't-cyber' },
+  { id: 'e-t-s', source: 'cat-tech', target: 't-space' },
+
+  // Connect Topics to Leaf Stories
+  { id: 'es-f-a', source: 't-fraud', target: 's-adani' },
+  { id: 'es-f-w', source: 't-fraud', target: 's-wirecard' },
+  { id: 'es-f-e', source: 't-fraud', target: 's-evergrande' },
+
+  { id: 'es-b-o', source: 't-board', target: 's-openai' },
+  { id: 'es-b-d', source: 't-board', target: 's-disney' },
+  { id: 'es-b-s', source: 't-board', target: 's-starbucks' },
+
+  { id: 'es-r-p', source: 't-reg', target: 's-paytm' },
+  { id: 'es-r-b', source: 't-reg', target: 's-binance' },
+
+  { id: 'es-c-f', source: 't-crypto', target: 's-ftx' },
+  { id: 'es-c-e', source: 't-crypto', target: 's-etf' },
+
+  { id: 'es-g-s', source: 't-genai', target: 's-sora' },
+  { id: 'es-g-g', source: 't-genai', target: 's-gemini' },
+  { id: 'es-g-n', source: 't-genai', target: 's-nyt' },
+
+  { id: 'es-ch-n', source: 't-chips', target: 's-nvidia' },
+  { id: 'es-ch-t', source: 't-chips', target: 's-tsmc' },
+  { id: 'es-ch-a', source: 't-chips', target: 's-arm' },
 ];
 
 // ==========================================
-// PART 2: THE STORY OVERLAY DATABASE
+// PART 2: THE TIMELINE DATABASE
 // ==========================================
-// This data ONLY loads when a user clicks a leaf node (like 'node-adani').
+// This maps the Leaf IDs above to actual chronological events.
 
 export const storyDatabase = {
-  "adani-2024": {
-    id: "adani-2024",
-    title: "Adani Group: The Recovery Arc",
-    description: "Analyzing the shift from the Hindenburg short-seller report to regulatory pivots and capital recovery.",
-    sentimentTrend: [
-      { date: 'Jan 23', sentiment: -85 },
-      { date: 'May 23', sentiment: -40 },
-      { date: 'Aug 23', sentiment: -10 },
-      { date: 'Jan 24', sentiment: 30 },
-      { date: 'Mar 24', sentiment: 55 },
-    ],
+  "s-adani": {
     timeline: [
-      {
-        id: "ev-1",
-        timestamp: "Jan 24, 2023",
-        title: "Hindenburg Report Released",
-        summary: "Short-seller report triggers massive sell-off in Adani stocks.",
-        entities: ["Adani Group", "Hindenburg"],
-        sentiment: "negative",
-        impactScore: 98
-      },
-      {
-        id: "ev-2",
-        timestamp: "May 19, 2023",
-        title: "SC Panel Interim Report",
-        summary: "Supreme Court panel finds no prima facie evidence of manipulation.",
-        entities: ["SEBI", "Adani Group"],
-        sentiment: "positive",
-        impactScore: 75
-      }
-    ],
-    // This is the inner Entity Graph that shows up on the right side of the screen
-    nodes: [
-      { id: '1', type: 'entity', data: { label: 'Adani Group', type: 'company' }, position: { x: 250, y: 50 } },
-      { id: '2', type: 'entity', data: { label: 'Gautam Adani', type: 'person' }, position: { x: 250, y: 200 } },
-      { id: '3', type: 'entity', data: { label: 'Hindenburg', type: 'org' }, position: { x: 50, y: 125 } },
-      { id: '4', type: 'entity', data: { label: 'SEBI', type: 'regulator' }, position: { x: 450, y: 125 } },
-    ],
-    edges: [
-      { id: 'e3-1', source: '3', target: '1', label: 'ACCUSED', animated: true },
-      { id: 'e2-1', source: '2', target: '1', label: 'LEADS' },
-      { id: 'e4-1', source: '4', target: '1', label: 'PROBES' },
-    ],
-    predictions: [
-      { title: "Verdict Q3", desc: "Legal clearance likely by late September." },
-      { title: "Refinancing", desc: "Expect $2.5B bond issue in Singapore." }
+      { id: 'ev1', timestamp: 'Jan 24, 2024', title: 'Hindenburg Report Released', summary: 'Short-seller report alleges stock manipulation, wiping out billions in market cap.' },
+      { id: 'ev2', timestamp: 'Feb 15, 2024', title: 'Regulatory Probe Initiated', summary: 'SEBI begins an official investigation into the corporate structure.' },
+      { id: 'ev3', timestamp: 'Mar 10, 2024', title: 'GQG Partners Investment', summary: 'Major institutional backer buys $1.8B stake, signaling market confidence.' }
     ]
   },
-
-  "paytm-2024": {
-    id: "paytm-2024",
-    title: "The Paytm Regulatory Crisis",
-    description: "RBI's crackdown on Paytm Payments Bank and the subsequent scramble for compliance and survival.",
-    sentimentTrend: [
-      { date: 'Dec 23', sentiment: 20 },
-      { date: 'Jan 31', sentiment: -95 },
-      { date: 'Feb 15', sentiment: -60 },
-      { date: 'Mar 15', sentiment: -20 },
-    ],
+  "s-openai": {
     timeline: [
-      {
-        id: "ev-p1",
-        timestamp: "Jan 31, 2024",
-        title: "RBI Bans Paytm Payments Bank",
-        summary: "Central bank orders PPBL to halt mostly all deposits and credit transactions.",
-        entities: ["Paytm", "RBI"],
-        sentiment: "negative",
-        impactScore: 100
-      },
-      {
-        id: "ev-p2",
-        timestamp: "Mar 14, 2024",
-        title: "NPCI Grants TPAP License",
-        summary: "Paytm receives Third-Party Application Provider license to continue UPI operations.",
-        entities: ["Paytm", "NPCI"],
-        sentiment: "positive",
-        impactScore: 80
-      }
-    ],
-    nodes: [
-      { id: 'p1', type: 'entity', data: { label: 'Paytm', type: 'company' }, position: { x: 250, y: 50 } },
-      { id: 'p2', type: 'entity', data: { label: 'RBI', type: 'regulator' }, position: { x: 50, y: 150 } },
-      { id: 'p3', type: 'entity', data: { label: 'NPCI', type: 'org' }, position: { x: 450, y: 150 } },
-    ],
-    edges: [
-      { id: 'ep-1', source: 'p2', target: 'p1', label: 'BANNED', animated: true },
-      { id: 'ep-2', source: 'p3', target: 'p1', label: 'LICENSED' },
-    ],
-    predictions: [
-      { title: "Market Share Loss", desc: "Expected 15% drop in UPI market share to PhonePe." },
-      { title: "Merger Rumors", desc: "Potential acquisition of wallet business by competitors." }
+      { id: 'o1', timestamp: 'Nov 17, 2023', title: 'Sam Altman Ousted', summary: 'The non-profit board unexpectedly fires the CEO via a Google Meet call.' },
+      { id: 'o2', timestamp: 'Nov 19, 2023', title: 'Microsoft Intervenes', summary: 'Satya Nadella offers to hire Altman and all resigning OpenAI staff.' },
+      { id: 'o3', timestamp: 'Nov 22, 2023', title: 'Altman Reinstated', summary: 'Following a massive employee revolt, the board is restructured and Altman returns.' }
+    ]
+  },
+  "s-nvidia": {
+    timeline: [
+      { id: 'n1', timestamp: 'May 24, 2023', title: 'The $1 Trillion Milestone', summary: 'Nvidia briefly touches $1T market cap fueled by AI chip demand.' },
+      { id: 'n2', timestamp: 'Feb 21, 2024', title: 'Blowout Q4 Earnings', summary: 'Revenue up 265% year-over-year, destroying Wall Street estimates.' },
+      { id: 'n3', timestamp: 'Mar 01, 2024', title: 'Crossing $2 Trillion', summary: 'Stock surges past $2T, making it the third most valuable US company.' }
     ]
   }
 };

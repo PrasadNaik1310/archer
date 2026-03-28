@@ -2,10 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
-:root { color-scheme: dark; }
+:root { color-scheme: light; }
 
 body {
-  @apply bg-[#020617] text-slate-200 antialiased overflow-hidden;
+  /* Switched to a light, professional slate background */
+  @apply bg-slate-50 text-slate-800 antialiased overflow-hidden;
   font-family: 'Inter', system-ui, sans-serif;
 }
 
@@ -20,7 +21,7 @@ body {
   animation: flow-line 1s linear infinite;
 }
 
-/* Custom Scrollbar */
+/* Custom Scrollbar - Updated for Light Theme */
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { @apply bg-blue-500/20 rounded-full hover:bg-blue-500/40; }

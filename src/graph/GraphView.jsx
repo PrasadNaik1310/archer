@@ -1,58 +1,109 @@
 import React, { useEffect, useMemo } from 'react';
-import ReactFlow, { Background, Controls, ReactFlowProvider, useReactFlow } from 'reactflow';
+import ReactFlow, { Background, useReactFlow, ReactFlowProvider } from 'reactflow';
 import 'reactflow/dist/style.css';
+
 import { GraphNode } from './GraphNode';
-import { GraphEdge } from './GraphEdge';
 import { useStoryStore } from '../store/useStoryStore';
 
-// DEFINED OUTSIDE COMPONENT TO FIX REACT FLOW WARNING
-const nodeTypes = { entity: GraphNode, category: GraphNode, topic: GraphNode, story: GraphNode };
-const edgeTypes = { default: GraphEdge };
+const nodeTypes = { custom: GraphNode };
 
-// Inner component that handles the camera
-const AnimatedFlow = ({ nodes, edges }) => {
+// Math helper to generate coordinates in a circle around a parent
+const generateRadialPositions = (parentNode, childrenNodes, radius = 250) => {
+  const angleStep = (2 * Math.PI) / childrenNodes.length;
+  
+  return childrenNodes.map((child, index) => {
+    const angle = index * angleStep - Math.PI / 2; // Start at the top (-90 deg)
+    return {
+      ...child,
+      position: {
+        x: parentNode.position.x + radius * Math.cos(angle),
+        y: parentNode.position.y + radius * Math.sin(angle),
+      }
+    };
+  });
+};
+
+const AnimatedRadialFlow = ({ rawNodes, rawEdges }) => {
   const { fitView, setCenter } = useReactFlow();
-  const { openStory, activeStoryId } = useStoryStore();
+  const { activeCategoryId, expandedNodes, activeLeafId } = useStoryStore();
 
-  // Animate the camera whenever the nodes change (e.g., from Category Map to Entity Map)
+  // 1. DYNAMIC RADIAL LAYOUT CALCULATION
+  const { nodes, edges } = useMemo(() => {
+    if (!activeCategoryId) return { nodes: [], edges: [] };
+
+    let visibleNodes = [];
+    const visibleEdges = [];
+
+    // Find the root category node and anchor it at the center
+    const rootNode = rawNodes.find(n => n.id === activeCategoryId);
+    if (!rootNode) return { nodes: [], edges: [] };
+    
+    rootNode.position = { x: 0, y: 0 };
+    visibleNodes.push(rootNode);
+
+    // Iteratively place children of expanded nodes
+    expandedNodes.forEach(expandedId => {
+      const parentNode = visibleNodes.find(n => n.id === expandedId);
+      if (!parentNode) return;
+
+      // Find all children for this expanded parent
+      const childEdges = rawEdges.filter(e => e.source === expandedId);
+      const childNodeIds = childEdges.map(e => e.target);
+      const childrenNodes = rawNodes.filter(n => childNodeIds.includes(n.id));
+
+      // Calculate radial positions for these children
+      const positionedChildren = generateRadialPositions(
+        parentNode, 
+        childrenNodes, 
+        parentNode.data.level === 0 ? 350 : 200 // Larger radius for main categories
+      );
+
+      visibleNodes = [...visibleNodes, ...positionedChildren];
+      visibleEdges.push(...childEdges);
+    });
+
+    return { nodes: visibleNodes, edges: visibleEdges };
+  }, [activeCategoryId, expandedNodes, rawNodes, rawEdges]);
+
+  // 2. CAMERA MOVEMENT LOGIC
   useEffect(() => {
-    setTimeout(() => {
-      // If a story is open, we pad the view so it fits nicely on the right side of the screen
-      const padding = activeStoryId ? 0.3 : 0.5;
-      fitView({ duration: 1200, padding, maxZoom: 1.2 });
-    }, 50);
-  }, [nodes, activeStoryId, fitView]);
-
-  const handleNodeClick = (event, node) => {
-    // If they click a leaf node (Story), open it!
-    if (node.data?.isStory && node.data?.storyId) {
-      openStory(node.data.storyId);
-    } else {
-      // Otherwise, just gently zoom to the category/topic they clicked
-      setCenter(node.position.x, node.position.y, { duration: 800, zoom: 1.2 });
+    if (activeLeafId) {
+      // If a leaf is clicked, zoom into it. (The wrapper in StoryPage shifts the canvas left)
+      const leafNode = nodes.find(n => n.id === activeLeafId);
+      if (leafNode) {
+        setCenter(leafNode.position.x, leafNode.position.y, { zoom: 1.2, duration: 800 });
+      }
+    } else if (nodes.length > 0) {
+      // Otherwise, keep the whole expanding cluster neatly in view
+      fitView({ padding: 0.3, duration: 800 });
     }
-  };
+  }, [nodes, activeLeafId, fitView, setCenter]);
 
   return (
     <ReactFlow 
       nodes={nodes} 
-      edges={edges} 
+      edges={edges.map(e => ({ 
+        ...e, 
+        animated: true, 
+        style: { stroke: '#94a3b8', strokeWidth: 2 } // Light theme edge styling
+      }))} 
       nodeTypes={nodeTypes} 
-      edgeTypes={edgeTypes} 
-      onNodeClick={handleNodeClick}
       proOptions={{ hideAttribution: true }}
+      minZoom={0.2}
+      maxZoom={2}
     >
-      <Background color="#cbd5e1" gap={20} size={1} />
-      <Controls className="bg-white border-slate-200 shadow-sm" showInteractive={false} />
+      {/* Light, professional background grid */}
+      <Background color="#cbd5e1" variant="dots" gap={30} size={2} />
     </ReactFlow>
   );
 };
 
-// Wrapper required by React Flow for the camera hooks
-export const GraphView = (props) => (
-  <div className="h-full w-full bg-slate-50">
+export const GraphView = ({ nodes, edges }) => (
+  <div className="h-full w-full">
     <ReactFlowProvider>
-      <AnimatedFlow {...props} />
+      <AnimatedRadialFlow rawNodes={nodes} rawEdges={edges} />
     </ReactFlowProvider>
   </div>
 );
+
+export default GraphView;
