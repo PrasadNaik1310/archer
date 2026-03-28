@@ -51,5 +51,15 @@ export const useStoryStore = create((set) => ({
     activeLeafId: null,
     selectedDate: null,
     selectedArticle: null
+  }), // <--- Added the missing comma right here!
+  
+  // 7. Toggle a node open or closed (for the GraphNode clicks)
+  toggleNode: (nodeId) => set((state) => {
+    // If it's already expanded, collapse it (remove it from the array)
+    if (state.expandedNodes.includes(nodeId)) {
+      return { expandedNodes: state.expandedNodes.filter(id => id !== nodeId) };
+    } 
+    // If it's not expanded, expand it (add it to the array)
+    return { expandedNodes: [...state.expandedNodes, nodeId] };
   })
 }));

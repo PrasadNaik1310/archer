@@ -1,49 +1,105 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStoryStore } from '../store/useStoryStore';
 import { GraphView } from '../graph/GraphView';
-import { ArrowLeft, Calendar, FileText, Link as LinkIcon, ShieldCheck } from 'lucide-react';
+import { TimelineView } from '../components/timeline/TimelineView';
+import { ArrowLeft, Sparkles, Search, Command, X } from 'lucide-react';
 
-// IMPORTING THE DATA ENGINE
 import { canvasNodes, canvasEdges } from '../data/mockStory';
 
 // ==========================================
-// 1. INITIAL CATEGORY SELECTOR (The Starting Point)
+// 1. CATEGORY SELECTOR (Clean Light Theme)
 // ==========================================
 const CategorySelector = () => {
   const { setCategory } = useStoryStore();
+  const [searchQuery, setSearchQuery] = useState('');
   
-  const categories = [
-    { id: 'cat-corporate', label: 'Corporate Governance', icon: '🏢' },
-    { id: 'cat-markets', label: 'Markets & Finance', icon: '📈' },
-    { id: 'cat-tech', label: 'Tech & AI', icon: '🚀' }
+  const allCategories = [
+    { id: 'cat-corporate', label: 'Corporate Governance', icon: '🏢', desc: 'Board conflicts, ESG, fraud' },
+    { id: 'cat-markets', label: 'Markets & Finance', icon: '📈', desc: 'Macro, crypto, IPOs' },
+    { id: 'cat-tech', label: 'Tech & AI', icon: '🚀', desc: 'GenAI, chips, cyber' },
+    { id: 'cat-geopolitics', label: 'Global Geopolitics', icon: '🌍', desc: 'Elections, trade wars, treaties' },
+    { id: 'cat-climate', label: 'Climate & Energy', icon: '🌱', desc: 'Renewables, EV transition' },
+    { id: 'cat-health', label: 'Biotech & Health', icon: '🧬', desc: 'Pharma, digital health, FDA' },
+    { id: 'cat-consumer', label: 'Consumer Trends', icon: '🛍️', desc: 'Retail, e-commerce, shifting habits' },
+    { id: 'cat-media', label: 'Media & Entertainment', icon: '🎬', desc: 'Streaming wars, social media' },
   ];
+
+  const filteredCategories = allCategories.filter(cat => 
+    cat.label.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    cat.desc.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <motion.div 
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-slate-50"
+      className="absolute inset-0 z-50 flex flex-col items-center justify-center overflow-hidden bg-[#f3f3f1]"
     >
-      <div className="w-full max-w-4xl px-6">
-        <h1 className="text-4xl font-light text-slate-800 tracking-tight text-center mb-12">
-          Select an Intelligence Cluster
+      <div className="w-full max-w-5xl px-6 relative z-10 flex flex-col items-center pt-10">
+        
+        {/* Highlighted Heading */}
+        <h1 className="text-4xl md:text-5xl font-medium text-neutral-900 tracking-tight text-center mb-10 leading-tight">
+          What are we <span className="relative inline-block">
+            <span className="relative z-10 font-bold">investigating</span>
+            {/* The marker-like highlight behind the text */}
+            <span className="absolute bottom-2 left-0 w-full h-4 bg-[#dbff00]/60 -z-10 rounded-sm" />
+          </span> today?
         </h1>
-        <div className="grid grid-cols-3 gap-6">
-          {categories.map((cat, idx) => (
-            <motion.button 
-              key={cat.id}
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1, transition: { delay: idx * 0.1 } }}
-              onClick={() => setCategory(cat.id)}
-              className="p-8 bg-white border border-slate-200 rounded-[24px] hover:border-blue-400 hover:shadow-xl transition-all text-left group"
-            >
-              <div className="text-4xl mb-4 group-hover:scale-110 transition-transform origin-left">{cat.icon}</div>
-              <div className="font-semibold text-slate-800 text-lg leading-tight">{cat.label}</div>
-              <div className="text-[10px] text-slate-400 uppercase mt-2 font-bold tracking-widest transition-colors group-hover:text-blue-600">
-                Initialize View
-              </div>
-            </motion.button>
-          ))}
+        
+        {/* Crisp White Search Bar */}
+        <motion.div 
+          initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1 }}
+          className="relative w-full max-w-2xl mb-12 group"
+        >
+          <div className="absolute inset-y-0 left-6 flex items-center pointer-events-none">
+            <Search className="w-6 h-6 text-neutral-400 group-focus-within:text-neutral-900 transition-colors" />
+          </div>
+          <input 
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search to find a cluster..."
+            className="w-full py-5 pl-16 pr-16 bg-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-[2rem] text-lg text-neutral-900 font-medium focus:outline-none focus:ring-4 focus:ring-[#dbff00]/40 transition-all placeholder:text-neutral-400 placeholder:font-normal"
+          />
+          <div className="absolute inset-y-0 right-6 flex items-center pointer-events-none">
+            <div className="flex items-center gap-1 text-neutral-500 bg-neutral-100 px-3 py-1.5 rounded-lg text-xs font-bold">
+              <Command size={14} /> K
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Thick, rounded White Category Cards */}
+        <div className="w-full max-w-4xl max-h-[45vh] overflow-y-auto custom-scrollbar px-2 pb-8">
+          {filteredCategories.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              <AnimatePresence>
+                {filteredCategories.map((cat, idx) => (
+                  <motion.button 
+                    layout
+                    key={cat.id}
+                    initial={{ scale: 0.95, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1, transition: { delay: idx * 0.05 } }}
+                    exit={{ scale: 0.95, opacity: 0 }}
+                    onClick={() => setCategory(cat.id)}
+                    className="flex flex-col items-start p-6 rounded-[2rem] transition-all duration-300 text-left group bg-white text-neutral-900 shadow-[0_4px_20px_rgb(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-1"
+                  >
+                    <div className="text-4xl w-14 h-14 flex items-center justify-center rounded-2xl mb-4 group-hover:scale-110 transition-transform bg-[#f3f3f1]">
+                      {cat.icon}
+                    </div>
+                    <div className="font-bold text-lg leading-tight mb-1">{cat.label}</div>
+                    <div className="text-xs font-medium text-neutral-500">
+                      {cat.desc}
+                    </div>
+                  </motion.button>
+                ))}
+              </AnimatePresence>
+            </div>
+          ) : (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-12">
+              <Sparkles className="w-10 h-10 text-neutral-300 mx-auto mb-4" />
+              <p className="text-neutral-500 font-medium text-lg">No clusters found for "{searchQuery}"</p>
+            </motion.div>
+          )}
         </div>
       </div>
     </motion.div>
@@ -51,23 +107,19 @@ const CategorySelector = () => {
 };
 
 // ==========================================
-// 2. MAIN STORY PAGE ORCHESTRATOR (THE BRAIN)
+// 2. MAIN STORY PAGE ORCHESTRATOR
 // ==========================================
 export const StoryPage = () => {
-  const { 
-    activeCategoryId, 
-    activeLeafId, 
-    selectedDate, 
-    selectedArticle,
-    resetAll,
-    setSelectedDate,
-    setSelectedArticle
-  } = useStoryStore();
+  const { activeCategoryId, activeLeafId, resetAll } = useStoryStore();
+
+  const handleCloseModal = () => {
+    useStoryStore.setState({ activeLeafId: null, selectedDate: null, selectedArticle: null });
+  };
 
   return (
-    <div className="relative h-screen w-full overflow-hidden bg-slate-50 font-sans text-slate-800">
+    <div className="relative h-screen w-full overflow-hidden bg-[#f3f3f1] font-sans text-neutral-900">
       
-      {/* GLOBAL NAVIGATION (Only visible when a category is active) */}
+      {/* Return Navigation */}
       <AnimatePresence>
         {activeCategoryId && (
           <motion.div 
@@ -77,134 +129,78 @@ export const StoryPage = () => {
           >
             <button 
               onClick={resetAll}
-              className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-full shadow-sm hover:shadow-md hover:border-slate-300 transition-all text-sm font-medium text-slate-600"
+              className="flex items-center gap-2 px-5 py-2.5 bg-white rounded-full shadow-sm hover:shadow-md hover:bg-[#dbff00] transition-colors duration-300 text-sm font-bold text-neutral-900 group"
             >
-              <ArrowLeft size={16} /> Return to Categories
+              <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" /> 
+              Categories
             </button>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* CATEGORY SELECTOR LAYER */}
       <AnimatePresence>
         {!activeCategoryId && <CategorySelector />}
       </AnimatePresence>
 
-      {/* BACKGROUND GRAPH LAYER 
-        Wired up to the massive mock data. The dynamic radial 
-        engine will handle the positioning based on expanded state.
-      */}
-      <div className={`absolute inset-0 z-0 transition-transform duration-700 ease-in-out ${activeLeafId ? '-translate-x-[20%]' : 'translate-x-0'}`}>
+      {/* BACKGROUND GRAPH LAYER */}
+      <motion.div 
+        animate={{ 
+          scale: activeLeafId ? 0.95 : 1, 
+          filter: activeLeafId ? 'blur(8px)' : 'blur(0px)',
+          opacity: activeLeafId ? 0.5 : 1
+        }}
+        transition={{ duration: 0.5, ease: [0.32, 0.72, 0, 1] }} 
+        className="absolute inset-0 z-0"
+      >
         {activeCategoryId && <GraphView nodes={canvasNodes} edges={canvasEdges} />}
-      </div>
+      </motion.div>
 
-      {/* THE INLINE TIMELINE & ARTICLE PANEL 
-        Sliding in seamlessly from the right side. No modals!
-      */}
+      {/* CENTERED MODAL OVERLAY */}
       <AnimatePresence>
         {activeLeafId && (
-          <motion.div 
-            initial={{ x: '100%', opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ x: '100%', opacity: 0 }}
-            transition={{ type: "spring", damping: 30, stiffness: 200 }}
-            className="absolute right-0 top-0 w-1/3 min-w-[450px] h-full bg-white border-l border-slate-200 shadow-2xl z-30 flex flex-col"
-          >
+          <div className="absolute inset-0 z-50 flex items-center justify-center p-4 sm:p-8 pointer-events-none">
             
-            {/* PANEL HEADER */}
-            <header className="p-8 border-b border-slate-100 bg-slate-50/50">
-               <div className="flex justify-between items-start">
-                 <div>
-                   <h2 className="text-2xl font-bold tracking-tight text-slate-900">Story Timeline</h2>
-                   <p className="text-sm text-slate-500 mt-1">Chronological event synthesis</p>
-                 </div>
-                 {/* Close button strictly returns to the cluster view */}
-                 <button 
-                   onClick={() => useStoryStore.setState({ activeLeafId: null, selectedDate: null, selectedArticle: null })}
-                   className="p-2 bg-white border border-slate-200 rounded-full hover:bg-slate-50 transition-colors text-slate-400 hover:text-slate-600"
-                 >
-                   <ArrowLeft size={16} className="rotate-180" />
-                 </button>
-               </div>
-            </header>
+            {/* Soft Gray/Transparent Backdrop */}
+            <motion.div 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.4 }}
+              onClick={handleCloseModal}
+              className="absolute inset-0 bg-neutral-900/10 backdrop-blur-sm pointer-events-auto"
+            />
 
-            {/* PANEL CONTENT (Scrollable) */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar p-8">
+            {/* The Floating White Window */}
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 30 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 30 }}
+              transition={{ type: "spring", damping: 28, stiffness: 250 }}
+              className="relative w-full max-w-4xl h-[85vh] bg-white rounded-[2.5rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] flex flex-col pointer-events-auto overflow-hidden ring-1 ring-black/5"
+            >
               
-              {/* STATE A: Show Timeline (Dates) */}
-              {!selectedDate && !selectedArticle && (
-                <div className="space-y-6">
-                   <div className="p-4 border border-slate-200 rounded-xl hover:border-blue-400 cursor-pointer transition-colors group" onClick={() => setSelectedDate("2024-01-24")}>
-                      <div className="flex items-center gap-2 text-blue-600 font-bold text-sm mb-2">
-                        <Calendar size={14} className="group-hover:scale-110 transition-transform" /> Jan 24, 2024
-                      </div>
-                      <p className="text-sm text-slate-600">3 articles synthesized regarding initial market movements.</p>
-                   </div>
-                   <div className="p-4 border border-slate-200 rounded-xl hover:border-blue-400 cursor-pointer transition-colors group" onClick={() => setSelectedDate("2024-02-15")}>
-                      <div className="flex items-center gap-2 text-blue-600 font-bold text-sm mb-2">
-                        <Calendar size={14} className="group-hover:scale-110 transition-transform" /> Feb 15, 2024
-                      </div>
-                      <p className="text-sm text-slate-600">5 articles synthesized on regulatory responses.</p>
-                   </div>
+              <button 
+                onClick={handleCloseModal}
+                className="absolute top-6 right-6 p-3 bg-[#f3f3f1] hover:bg-[#dbff00] rounded-full text-neutral-600 hover:text-neutral-900 transition-colors z-20"
+              >
+                <X size={20} strokeWidth={3} />
+              </button>
+
+              <header className="px-12 pt-12 pb-6 border-b border-neutral-100 bg-white/90 backdrop-blur-md sticky top-0 z-10">
+                <div className="pr-12">
+                  <h2 className="text-3xl font-bold tracking-tight text-neutral-900">Intelligence Report</h2>
+                  <p className="text-sm text-neutral-500 mt-1 font-medium">Synthesized chronological events</p>
                 </div>
-              )}
+              </header>
 
-              {/* STATE B: Show Articles for a Specific Date */}
-              {selectedDate && !selectedArticle && (
-                <div className="animate-in fade-in slide-in-from-right-4 duration-500">
-                  <button onClick={() => setSelectedDate(null)} className="text-sm text-slate-500 hover:text-blue-600 mb-6 flex items-center gap-1 font-medium">
-                    ← Back to Timeline
-                  </button>
-                  <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-                    <Calendar size={18} className="text-blue-500" /> Events on {selectedDate}
-                  </h3>
-                  
-                  {/* Article List */}
-                  <div className="space-y-4">
-                    <div className="p-5 bg-slate-50 border border-slate-200 rounded-xl hover:bg-white hover:border-slate-300 transition-all cursor-pointer group" onClick={() => setSelectedArticle({ title: "Market Opens Lower", source: "Financial Times" })}>
-                      <h4 className="font-semibold text-slate-900 mb-1 group-hover:text-blue-600 transition-colors">Market Opens Lower Amid Uncertainty</h4>
-                      <p className="text-xs text-slate-500 font-medium uppercase tracking-wider flex items-center gap-1">
-                        <FileText size={12} /> Financial Times
-                      </p>
-                    </div>
-                  </div>
+              <div className="flex-1 overflow-y-auto custom-scrollbar px-12 py-8">
+                <div className="max-w-2xl mx-auto">
+                  <TimelineView />
                 </div>
-              )}
+              </div>
 
-              {/* STATE C: Full Article View (Deepest Drill-Down) */}
-              {selectedArticle && (
-                <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                   <button onClick={() => setSelectedArticle(null)} className="text-sm text-slate-500 hover:text-blue-600 mb-6 flex items-center gap-1 font-medium">
-                    ← Back to Articles
-                  </button>
-                  <h1 className="text-2xl font-bold text-slate-900 leading-tight mb-4">
-                    {selectedArticle.title}
-                  </h1>
-                  
-                  {/* HIGH-VISIBILITY SOURCE ATTRIBUTION */}
-                  <div className="flex items-center justify-between p-4 bg-slate-100 border border-slate-200 rounded-xl mb-8">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                        <LinkIcon size={14} className="text-blue-600" />
-                      </div>
-                      <div>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Primary Source</p>
-                        <p className="text-sm font-bold text-slate-800">{selectedArticle.source}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1 text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-200 text-xs font-bold shadow-sm">
-                      <ShieldCheck size={14} /> Verified Data
-                    </div>
-                  </div>
-
-                  <div className="prose prose-slate prose-sm text-slate-700 leading-relaxed">
-                    <p>This is the full text of the article. It loads seamlessly within the existing flow without opening a new tab or a disruptive modal window. The data sources are explicitly tracked and verified to maintain absolute intelligence integrity.</p>
-                  </div>
-                </div>
-              )}
-
-            </div>
-          </motion.div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
 

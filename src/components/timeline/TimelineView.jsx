@@ -9,18 +9,28 @@ import { Calendar, FileText, Link as LinkIcon, ArrowLeft, ShieldCheck } from 'lu
 export const TimelineView = () => {
   const { activeLeafId, selectedDate, selectedArticle, setSelectedDate, setSelectedArticle } = useStoryStore();
   
-  // Fetch timeline data from mock database
   const storyData = activeLeafId ? storyDatabase[activeLeafId] : null;
   const events = storyData?.timeline || [];
 
-  // Mock articles for when a date is clicked (In production, filter by selectedDate)
   const mockArticles = [
     { id: 1, title: "Initial Market Reaction to Regulatory Shifts", source: "Financial Times", time: "09:30 AM" },
     { id: 2, title: "Board Members Issue Joint Statement", source: "Bloomberg", time: "14:15 PM" },
     { id: 3, title: "Analysis: Long-term impact on shareholder value", source: "Reuters", time: "18:45 PM" }
   ];
 
-  if (!events.length) return null;
+  if (!events.length) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full text-center animate-in fade-in duration-500">
+        <div className="w-16 h-16 mb-6 rounded-full bg-neutral-50 flex items-center justify-center border border-neutral-200 shadow-sm">
+          <FileText size={24} className="text-[#ea4c89]" />
+        </div>
+        <h3 className="text-lg font-bold text-neutral-900 mb-2">Intelligence Gathering</h3>
+        <p className="text-sm text-neutral-500 max-w-[250px] leading-relaxed">
+          The AI engine is currently synthesizing reports and sourcing data for this specific cluster. Check back soon.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="relative w-full pb-24">
@@ -31,7 +41,7 @@ export const TimelineView = () => {
           <motion.div 
             key="timeline"
             initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
-            className="relative space-y-8"
+            className="relative space-y-6"
           >
             <TimelineLine />
             {events.map((event) => (
@@ -48,14 +58,14 @@ export const TimelineView = () => {
           >
             <button 
               onClick={() => setSelectedDate(null)} 
-              className="mb-8 flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-blue-600 transition-colors"
+              className="mb-8 flex items-center gap-2 text-sm font-semibold text-neutral-400 hover:text-[#ea4c89] transition-colors"
             >
               <ArrowLeft size={16} /> Return to Timeline
             </button>
             
-            <h3 className="text-xl font-bold text-slate-900 mb-6 flex items-center gap-2">
-              <Calendar size={20} className="text-blue-500" /> 
-              Articles published on {selectedDate}
+            <h3 className="text-xl font-bold text-neutral-900 mb-6 flex items-center gap-2">
+              <Calendar size={20} className="text-[#ea4c89]" /> 
+              Events on {selectedDate}
             </h3>
 
             <div className="space-y-4">
@@ -63,14 +73,14 @@ export const TimelineView = () => {
                 <div 
                   key={article.id}
                   onClick={() => setSelectedArticle(article)}
-                  className="p-5 bg-white border border-slate-200 rounded-xl hover:border-blue-400 hover:shadow-md transition-all cursor-pointer group"
+                  className="p-5 bg-white border border-neutral-200 rounded-2xl hover:border-[#ea4c89]/40 hover:shadow-[0_8px_30px_rgba(234,76,137,0.08)] transition-all cursor-pointer group"
                 >
-                  <h4 className="font-bold text-slate-800 mb-3 group-hover:text-blue-600 transition-colors">
+                  <h4 className="font-bold text-neutral-800 mb-3 group-hover:text-[#ea4c89] transition-colors">
                     {article.title}
                   </h4>
-                  <div className="flex items-center justify-between text-xs font-bold text-slate-500 uppercase tracking-wider">
+                  <div className="flex items-center justify-between text-xs font-bold text-neutral-400 uppercase tracking-wider">
                     <span className="flex items-center gap-1.5">
-                      <FileText size={14} className="text-slate-400" /> {article.source}
+                      <FileText size={14} className="text-neutral-400" /> {article.source}
                     </span>
                     <span>{article.time}</span>
                   </div>
@@ -88,34 +98,33 @@ export const TimelineView = () => {
           >
             <button 
               onClick={() => setSelectedArticle(null)} 
-              className="mb-8 flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-blue-600 transition-colors"
+              className="mb-8 flex items-center gap-2 text-sm font-semibold text-neutral-400 hover:text-[#ea4c89] transition-colors"
             >
               <ArrowLeft size={16} /> Back to Date Articles
             </button>
             
-            <h1 className="text-3xl font-bold text-slate-900 leading-tight mb-6">
+            <h1 className="text-3xl font-bold text-neutral-900 leading-tight mb-6">
               {selectedArticle.title}
             </h1>
 
-            {/* SOURCE ATTRIBUTION BAR (Required for professional transparency) */}
-            <div className="flex items-center justify-between p-4 bg-slate-100 border border-slate-200 rounded-xl mb-8">
+            <div className="flex items-center justify-between p-4 bg-neutral-50 border border-neutral-200 rounded-xl mb-8">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                  <LinkIcon size={14} className="text-blue-600" />
+                <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center border border-neutral-200 shadow-sm">
+                  <LinkIcon size={14} className="text-[#ea4c89]" />
                 </div>
                 <div>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Primary Source</p>
-                  <p className="text-sm font-bold text-slate-800">{selectedArticle.source}</p>
+                  <p className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">Primary Source</p>
+                  <p className="text-sm font-bold text-neutral-700">{selectedArticle.source}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-1 text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-200 text-xs font-bold">
-                <ShieldCheck size={14} /> Verified
+              <div className="flex items-center gap-1 text-[#ea4c89] bg-[#ea4c89]/10 px-3 py-1.5 rounded-full border border-[#ea4c89]/20 text-xs font-bold">
+                <ShieldCheck size={14} /> Verified Data
               </div>
             </div>
 
-            {/* Article Content */}
-            <div className="prose prose-slate max-w-none text-slate-700 leading-relaxed space-y-6">
-              <p>This is the synthesized intelligence report corresponding to the selected timeline event. The text loads inline, maintaining the continuous flow of the application without relying on external tabs or intrusive modal overlays.</p>
+            {/* Note: Removed prose-invert so it renders beautifully in light mode */}
+            <div className="prose prose-neutral prose-sm text-neutral-600 leading-relaxed max-w-none">
+              <p>This is the full text of the article. It loads seamlessly within the existing flow without opening a new tab or a disruptive modal window. The data sources are explicitly tracked and verified to maintain absolute intelligence integrity.</p>
               <p>By keeping the user anchored to the main canvas, they can easily step backward through the flow—from Article to Date to Timeline to Cluster—without losing their context.</p>
             </div>
           </motion.div>
