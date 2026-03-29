@@ -87,3 +87,35 @@ curl -s https://<api-url>/story/<story_id>
 - `dial tcp ... :8000`: internal embedding process failed, check service logs
 - CORS errors from frontend: set `FRONTEND_ORIGIN` to exact frontend origin
 
+### 5) Precomputed MiniLM Mode (Recommended for 512MB)
+
+Use this mode to keep MiniLM in architecture while avoiding live model inference memory costs.
+
+How it works:
+
+- MiniLM embeddings are generated offline once.
+- Runtime `/embed` serves vectors from a precomputed cache file.
+- `/extract-entities` still works via spaCy NER.
+
+Prepare cache file locally:
+
+```bash
+cd backend
+python scripts/precompute_embeddings.py \
+	--input configs/demo_texts.json \
+	--output embedding-service/precomputed_embeddings.json
+```
+
+Set these env vars in Render (`archer-backend`):
+
+```bash
+EMBEDDING_MODE=precomputed
+PRECOMPUTED_EMBEDDINGS_FILE=/app/embedding-service/precomputed_embeddings.json
+```
+
+Optional fallback to full online model inference:
+
+```bash
+EMBEDDING_MODE=online
+```
+

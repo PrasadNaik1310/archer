@@ -3,6 +3,8 @@ set -e
 
 EMBEDDING_INTERNAL_PORT="${EMBEDDING_INTERNAL_PORT:-8000}"
 export EMBEDDING_SERVICE_URL="${EMBEDDING_SERVICE_URL:-http://127.0.0.1:${EMBEDDING_INTERNAL_PORT}}"
+export EMBEDDING_MODE="${EMBEDDING_MODE:-precomputed}"
+export PRECOMPUTED_EMBEDDINGS_FILE="${PRECOMPUTED_EMBEDDINGS_FILE:-/app/embedding-service/precomputed_embeddings.json}"
 
 # Start embedding service on an internal port.
 python -m uvicorn main:app \
