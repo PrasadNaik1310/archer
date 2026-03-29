@@ -1,6 +1,34 @@
 import { create } from 'zustand';
 import { fetchStories, fetchStoryById } from '../api/api';
 
+const CATEGORY_ROOT_LABELS = {
+  'cat-corporate': 'Corporate Governance Briefing',
+  'cat-markets': 'Markets & Finance Briefing',
+  'cat-tech': 'Tech & AI Briefing',
+  'cat-geopolitics': 'Global Geopolitics Briefing',
+  'cat-climate': 'Climate & Energy Briefing',
+  'cat-health': 'Biotech & Health Briefing',
+  'cat-consumer': 'Consumer Trends Briefing',
+  'cat-media': 'Media & Entertainment Briefing',
+};
+
+const isGenericStoryTitle = (title) => {
+  const normalized = (title || '').trim().toLowerCase();
+  return (
+    normalized === '' ||
+    normalized === 'auto generated story' ||
+    normalized === 'untitled story'
+  );
+};
+
+const getRootLabel = (categoryId, storyTitle) => {
+  if (!isGenericStoryTitle(storyTitle)) {
+    return storyTitle;
+  }
+
+  return CATEGORY_ROOT_LABELS[categoryId] || 'Story Briefing';
+};
+
 const formatTimestamp = (ts) => {
   if (!ts) return 'Unknown';
   const date = new Date(Number(ts) * 1000);
@@ -97,7 +125,7 @@ export const useStoryStore = create((set, get) => ({
     try {
       const data = await fetchStories();
       if (!data.length) {
-        set({ error: 'No stories configured. Set VITE_STORY_IDS or VITE_STORY_ID in frontend env.' });
+        set({ error: 'No stories available yet. Ingest seed data first.' });
       }
       set({ stories: data });
     } catch (err) {
@@ -118,11 +146,14 @@ export const useStoryStore = create((set, get) => ({
         throw new Error('Invalid story payload from backend');
       }
 
+      const activeCategoryId = get().activeCategoryId;
+      const rootLabel = getRootLabel(activeCategoryId, story.title);
+
       const storyEntities = Array.isArray(story.entities) ? story.entities : [];
 
       const rootNode = {
         id: story.story_id,
-        data: { label: story.title || 'Untitled Story', level: 0 },
+        data: { label: rootLabel, level: 0 },
         position: { x: 0, y: 0 },
         type: 'custom'
       };
