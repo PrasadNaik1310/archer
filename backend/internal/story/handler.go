@@ -1,8 +1,8 @@
 package story
 
 import (
+	"PrasadNaik1310/archer/internal/models"
 	"net/http"
-
 	"github.com/gin-gonic/gin"
 )
 
@@ -35,4 +35,25 @@ func (h *Handler) GetStory(c *gin.Context) {
 
 	// 3. Return the beautiful nested JSON to the frontend
 	c.JSON(http.StatusOK, fullStory)
+}
+
+// CreateStory handles POST /stories
+func (h *Handler) CreateStory(c *gin.Context) {
+	var story models.Story
+
+	// 1. Parse the incoming JSON
+	if err := c.ShouldBindJSON(&story); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid story data: " + err.Error()})
+		return
+	}
+
+	// 2. Call the service to save it
+	createdStory, err := h.service.CreateStory(c.Request.Context(), &story)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create story"})
+		return
+	}
+
+	// 3. Return the created story (including its new StoryID)
+	c.JSON(http.StatusCreated, createdStory)
 }

@@ -1,9 +1,10 @@
 package story
 
 import (
+	"context"
 	"PrasadNaik1310/archer/internal/db/mongo"
 	"PrasadNaik1310/archer/internal/models"
-	"context"
+	"github.com/google/uuid"
 )
 
 // Service handles the business logic for Stories
@@ -53,4 +54,18 @@ func (s *Service) GetFullStory(ctx context.Context, storyID string) (*models.Ful
 		Story:  *story,
 		Events: timeline,
 	}, nil
+}
+
+// CreateStory generates a UUID and saves a new story
+func (s *Service) CreateStory(ctx context.Context, story *models.Story) (*models.Story, error) {
+	// 1. Generate a Unique ID (Requirement: STRICT string IDs)
+	story.StoryID = uuid.New().String()
+
+	// 2. Your Repository handles the time.Now() logic
+	err := s.repo.Create(ctx, story)
+	if err != nil {
+		return nil, err
+	}
+
+	return story, nil
 }
