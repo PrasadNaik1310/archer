@@ -7,6 +7,7 @@ import { Calendar, FileText, Link as LinkIcon, ArrowLeft, ShieldCheck } from 'lu
 
 export const TimelineView = () => {
   const { 
+    activeLeafId,
     selectedDate, 
     selectedArticle, 
     setSelectedDate, 
@@ -21,7 +22,11 @@ export const TimelineView = () => {
     (a, b) => a.timestamp - b.timestamp
   );
 
-  if (!timeline.length) {
+  const visibleTimeline = activeLeafId
+    ? timeline.filter((event) => event.event_id === activeLeafId)
+    : timeline;
+
+  if (!visibleTimeline.length) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center animate-in fade-in duration-500">
         <div className="w-16 h-16 mb-6 rounded-full bg-neutral-50 flex items-center justify-center border border-neutral-200 shadow-sm">
@@ -47,7 +52,7 @@ export const TimelineView = () => {
             className="relative space-y-6"
           >
             <TimelineLine />
-            {timeline.map((event) => (
+            {visibleTimeline.map((event) => (
               <TimelineNode 
                 key={event.event_id || event.id} 
                 event={event} 
@@ -91,6 +96,9 @@ export const TimelineView = () => {
                     <h4 className="font-bold text-neutral-800 mb-3 group-hover:text-[#ea4c89] transition-colors">
                       {article.title}
                     </h4>
+                    <p className="text-sm text-neutral-500 leading-relaxed mb-3 line-clamp-2">
+                      {article.summary || 'No summary available for this source yet.'}
+                    </p>
                     <div className="flex items-center justify-between text-xs font-bold text-neutral-400 uppercase tracking-wider">
                       <span className="flex items-center gap-1.5">
                         <FileText size={14} className="text-neutral-400" /> {article.source || article.publisher || "Verified Source"}

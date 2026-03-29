@@ -35,6 +35,34 @@ const formatTimestamp = (ts) => {
   return Number.isNaN(date.getTime()) ? String(ts) : date.toLocaleString();
 };
 
+const compactText = (value) => (value || '').replace(/\s+/g, ' ').trim();
+
+const toSentenceSummary = (value, maxLen = 180) => {
+  const text = compactText(value);
+  if (!text) return '';
+
+  const sentence = text.split(/(?<=[.!?])\s+/)[0] || text;
+  if (sentence.length <= maxLen) {
+    return sentence;
+  }
+
+  return `${sentence.slice(0, maxLen).trimEnd()}...`;
+};
+
+const toArticleTitle = (chunk, index) => {
+  const base = compactText(chunk.summary) || compactText(chunk.text);
+  if (!base) {
+    return `Source ${index + 1}`;
+  }
+
+  const title = base.split(/(?<=[.!?])\s+/)[0] || base;
+  if (title.length <= 90) {
+    return title;
+  }
+
+  return `${title.slice(0, 90).trimEnd()}...`;
+};
+
 export const useStoryStore = create((set, get) => ({
   // --- ONE-FLOW NAVIGATION STATES ---
   activeCategoryId: null,   // 1. Which main category is selected
@@ -260,10 +288,11 @@ export const useStoryStore = create((set, get) => ({
       }
 
       const articles = (eventEntry.chunks || []).map((chunk, idx) => ({
-        title: chunk.summary || `Source ${idx + 1}`,
+        title: toArticleTitle(chunk, idx),
+        summary: toSentenceSummary(chunk.summary) || toSentenceSummary(chunk.text),
         source: `Source ${idx + 1}`,
         date: formatTimestamp(chunk.timestamp),
-        content: chunk.text || chunk.summary || '',
+        content: compactText(chunk.text) || compactText(chunk.summary) || '',
       }));
 
       set({ eventDetails: { articles } });
