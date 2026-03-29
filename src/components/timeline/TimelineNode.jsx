@@ -3,8 +3,17 @@ import { motion } from 'framer-motion';
 import { useStoryStore } from '../../store/useStoryStore';
 import { Calendar, Layers } from 'lucide-react';
 
-export const TimelineNode = ({ event }) => {
+export const TimelineNode = ({ event, onEventClick }) => {
   const { setSelectedDate } = useStoryStore();
+
+  const handleClick = () => {
+    if (onEventClick) {
+      onEventClick();
+      return;
+    }
+
+    setSelectedDate(event.timestamp);
+  };
 
   return (
     <motion.div 
@@ -12,7 +21,7 @@ export const TimelineNode = ({ event }) => {
       whileInView={{ opacity: 1, x: 0 }}
       viewport={{ once: true, margin: "-50px" }}
       transition={{ duration: 0.4, ease: "easeOut" }}
-      onClick={() => setSelectedDate(event.timestamp)}
+      onClick={handleClick}
       className="relative pl-12 group cursor-pointer"
     >
       {/* Minimalist Pink Timeline Dot - matches the screenshot */}

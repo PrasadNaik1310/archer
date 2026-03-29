@@ -1,7 +1,13 @@
 import { create } from 'zustand';
-import { fetchStories, fetchStoryById, fetchEventById } from '../api/api';
+import { fetchStories, fetchStoryById } from '../api/api';
 
-export const useStoryStore = create((set) => ({
+const formatTimestamp = (ts) => {
+  if (!ts) return 'Unknown';
+  const date = new Date(Number(ts) * 1000);
+  return Number.isNaN(date.getTime()) ? String(ts) : date.toLocaleString();
+};
+
+export const useStoryStore = create((set, get) => ({
   // --- ONE-FLOW NAVIGATION STATES ---
   activeCategoryId: null,   // 1. Which main category is selected
   activeStoryId: null,      // 🔥 NEW: Specifically tracks the root ID for the Graph
@@ -85,6 +91,9 @@ export const useStoryStore = create((set) => ({
     set({ loading: true, error: null });
     try {
       const data = await fetchStories();
+      if (!data.length) {
+        set({ error: 'No stories configured. Set VITE_STORY_IDS or VITE_STORY_ID in frontend env.' });
+      }
       set({ stories: data });
     } catch (err) {
       set({ error: err.message });
@@ -97,49 +106,104 @@ export const useStoryStore = create((set) => ({
     set({ loading: true, error: null });
     try {
       const data = await fetchStoryById(id);
+      const story = data?.story;
+      const events = Array.isArray(data?.events) ? data.events : [];
 
-      // 1. Create ROOT node (category/story root)
+      if (!story?.story_id) {
+        throw new Error('Invalid story payload from backend');
+      }
+
+      const storyEntities = Array.isArray(story.entities) ? story.entities : [];
+
       const rootNode = {
-        id: data.story_id, 
-        data: { label: data.title, level: 0 },
+        id: story.story_id,
+        data: { label: story.title || 'Untitled Story', level: 0 },
         position: { x: 0, y: 0 },
         type: 'custom'
       };
 
-      // 2. Create entity nodes
-      const entityNodes = data.entities.map((e, index) => ({
-        id: e,
-        data: { label: e, level: 1 },
+      const entityNodes = storyEntities.map((entity, index) => ({
+        id: `entity:${entity}`,
+        data: { label: entity, level: 1 },
         position: {
-          x: Math.cos((index / data.entities.length) * 2 * Math.PI) * 200,
-          y: Math.sin((index / data.entities.length) * 2 * Math.PI) * 200,
+          x: Math.cos((index / Math.max(storyEntities.length, 1)) * 2 * Math.PI) * 200,
+          y: Math.sin((index / Math.max(storyEntities.length, 1)) * 2 * Math.PI) * 200,
         },
         type: 'custom'
       }));
 
-      const nodes = [rootNode, ...entityNodes];
+      const eventNodes = events.map((entry, index) => {
+        const event = entry?.event || {};
+        const chunks = Array.isArray(entry?.chunks) ? entry.chunks : [];
+        return {
+          id: event.event_id || `event:${index}`,
+          data: {
+            label: event.summary || `Event ${index + 1}`,
+            level: 2,
+            sourceCount: chunks.length,
+          },
+          position: {
+            x: Math.cos((index / Math.max(events.length, 1)) * 2 * Math.PI) * 400,
+            y: Math.sin((index / Math.max(events.length, 1)) * 2 * Math.PI) * 400,
+          },
+          type: 'custom'
+        };
+      });
 
-      // 3. Connect root → entities
-      const rootEdges = data.entities.map((e, i) => ({
+      const rootEdges = entityNodes.map((entityNode, i) => ({
         id: `root-${i}`,
-        source: data.story_id,
-        target: e
+        source: story.story_id,
+        target: entityNode.id
       }));
 
-      // 4. Add relationships
-      const relationEdges = data.relationships.map((r, i) => ({
-        id: `rel-${i}`,
-        source: r.source,
-        target: r.target,
-        label: r.type
-      }));
+      const entitySet = new Set(storyEntities);
+      const eventEdges = [];
+
+      events.forEach((entry, i) => {
+        const event = entry?.event || {};
+        const eventId = event.event_id || `event:${i}`;
+        const eventEntities = Array.isArray(event.entities) ? event.entities : [];
+        const matched = eventEntities.filter((entity) => entitySet.has(entity));
+
+        if (matched.length) {
+          matched.forEach((entity, idx) => {
+            eventEdges.push({
+              id: `event-${i}-${idx}`,
+              source: `entity:${entity}`,
+              target: eventId,
+            });
+          });
+          return;
+        }
+
+        // If no matching entity edge exists, attach event directly to root.
+        eventEdges.push({
+          id: `event-root-${i}`,
+          source: story.story_id,
+          target: eventId,
+        });
+      });
+
+      const timeline = events.map((entry, i) => {
+        const event = entry?.event || {};
+        const chunks = Array.isArray(entry?.chunks) ? entry.chunks : [];
+        return {
+          event_id: event.event_id || `event:${i}`,
+          timestamp: event.timestamp,
+          title: event.summary || `Event ${i + 1}`,
+          summary: `${chunks.length} source article${chunks.length === 1 ? '' : 's'}`,
+        };
+      });
 
       set({
-        currentStory: data,
-        activeStoryId: data.story_id, // 🔥 Set the active story root ID so the graph knows where to start
-        nodes,
-        edges: [...rootEdges, ...relationEdges],
-        expandedNodes: [data.story_id] // Auto-expand the root node
+        currentStory: {
+          ...data,
+          timeline,
+        },
+        activeStoryId: story.story_id,
+        nodes: [rootNode, ...entityNodes, ...eventNodes],
+        edges: [...rootEdges, ...eventEdges],
+        expandedNodes: [story.story_id]
       });
 
     } catch (err) {
@@ -152,8 +216,21 @@ export const useStoryStore = create((set) => ({
   loadEventById: async (eventId) => {
     set({ loading: true, error: null }); 
     try {
-      const data = await fetchEventById(eventId);
-      set({ eventDetails: data });
+      const storyData = get().currentStory;
+      const eventEntry = storyData?.events?.find((entry) => entry?.event?.event_id === eventId);
+
+      if (!eventEntry) {
+        throw new Error('Event not found in currently loaded story');
+      }
+
+      const articles = (eventEntry.chunks || []).map((chunk, idx) => ({
+        title: chunk.summary || `Source ${idx + 1}`,
+        source: `Source ${idx + 1}`,
+        date: formatTimestamp(chunk.timestamp),
+        content: chunk.text || chunk.summary || '',
+      }));
+
+      set({ eventDetails: { articles } });
     } catch (err) {
       set({ error: err.message });
       console.error(err);
