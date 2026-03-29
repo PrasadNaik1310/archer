@@ -4,8 +4,8 @@ import { useStoryStore } from '../store/useStoryStore';
 import { Layers, Zap, ShieldCheck } from 'lucide-react';
 
 export const GraphNode = ({ data, id }) => {
-  // NEW: Pull toggleNode and loadStoryById from the store
-  const { toggleNode, openLeafTimeline, expandedNodes, activeLeafId, loadStoryById } = useStoryStore();
+  // NEW: Pull toggleNode instead of expandNode
+  const { toggleNode, openLeafTimeline, expandedNodes, activeLeafId } = useStoryStore();
   
   const isCategory = data.level === 0;
   const isLeaf = !data.hasChildren; 
@@ -14,12 +14,6 @@ export const GraphNode = ({ data, id }) => {
 
   const handleClick = (e) => {
     e.stopPropagation();
-
-    // 🔥 API INTEGRATION: Only call API for ROOT nodes (level 0) when expanding
-    if (data.level === 0 && (!isExpanded || isLeaf)) {
-      loadStoryById(id);
-    }
-
     if (isLeaf) {
       openLeafTimeline(id);
     } else {

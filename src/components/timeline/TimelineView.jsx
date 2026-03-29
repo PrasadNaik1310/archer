@@ -3,25 +3,22 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { TimelineNode } from './TimelineNode';
 import { TimelineLine } from './TimelineLine';
 import { useStoryStore } from '../../store/useStoryStore';
+import { storyDatabase } from '../../data/mockStory';
 import { Calendar, FileText, Link as LinkIcon, ArrowLeft, ShieldCheck } from 'lucide-react';
 
 export const TimelineView = () => {
-  const { 
-    selectedDate, 
-    selectedArticle, 
-    setSelectedDate, 
-    setSelectedArticle,
-    currentStory,
-    loadEventById,
-    eventDetails // 🔥 CRITICAL FIX: We need to pull this from the store!
-  } = useStoryStore();
+  const { activeLeafId, selectedDate, selectedArticle, setSelectedDate, setSelectedArticle } = useStoryStore();
   
-  // 👉 API INTEGRATION: Safely map and sort the live timeline data
-  const timeline = [...(currentStory?.timeline || [])].sort(
-    (a, b) => a.timestamp - b.timestamp
-  );
+  const storyData = activeLeafId ? storyDatabase[activeLeafId] : null;
+  const events = storyData?.timeline || [];
 
-  if (!timeline.length) {
+  const mockArticles = [
+    { id: 1, title: "Initial Market Reaction to Regulatory Shifts", source: "Financial Times", time: "09:30 AM" },
+    { id: 2, title: "Board Members Issue Joint Statement", source: "Bloomberg", time: "14:15 PM" },
+    { id: 3, title: "Analysis: Long-term impact on shareholder value", source: "Reuters", time: "18:45 PM" }
+  ];
+
+  if (!events.length) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center animate-in fade-in duration-500">
         <div className="w-16 h-16 mb-6 rounded-full bg-neutral-50 flex items-center justify-center border border-neutral-200 shadow-sm">
@@ -47,16 +44,8 @@ export const TimelineView = () => {
             className="relative space-y-6"
           >
             <TimelineLine />
-            {timeline.map((event) => (
-              <TimelineNode 
-                key={event.event_id || event.id} 
-                event={event} 
-                // 👉 API INTEGRATION: Trigger loadEventById on click
-                onEventClick={() => {
-                  setSelectedDate(event.timestamp);
-                  loadEventById(event.event_id);
-                }}
-              />
+            {events.map((event) => (
+              <TimelineNode key={event.id} event={event} />
             ))}
           </motion.div>
         )}
@@ -79,31 +68,24 @@ export const TimelineView = () => {
               Events on {selectedDate}
             </h3>
 
-            {/* 🔥 CLEANED UP: Real data mapping without the syntax errors */}
             <div className="space-y-4">
-              {eventDetails?.articles?.length > 0 ? (
-                eventDetails.articles.map((article, idx) => (
-                  <div 
-                    key={idx}
-                    onClick={() => setSelectedArticle(article)}
-                    className="p-5 bg-white border border-neutral-200 rounded-2xl hover:border-[#ea4c89]/40 hover:shadow-[0_8px_30px_rgba(234,76,137,0.08)] transition-all cursor-pointer group"
-                  >
-                    <h4 className="font-bold text-neutral-800 mb-3 group-hover:text-[#ea4c89] transition-colors">
-                      {article.title}
-                    </h4>
-                    <div className="flex items-center justify-between text-xs font-bold text-neutral-400 uppercase tracking-wider">
-                      <span className="flex items-center gap-1.5">
-                        <FileText size={14} className="text-neutral-400" /> {article.source || article.publisher || "Verified Source"}
-                      </span>
-                      <span>{article.time || article.date || "Recent"}</span>
-                    </div>
+              {mockArticles.map((article) => (
+                <div 
+                  key={article.id}
+                  onClick={() => setSelectedArticle(article)}
+                  className="p-5 bg-white border border-neutral-200 rounded-2xl hover:border-[#ea4c89]/40 hover:shadow-[0_8px_30px_rgba(234,76,137,0.08)] transition-all cursor-pointer group"
+                >
+                  <h4 className="font-bold text-neutral-800 mb-3 group-hover:text-[#ea4c89] transition-colors">
+                    {article.title}
+                  </h4>
+                  <div className="flex items-center justify-between text-xs font-bold text-neutral-400 uppercase tracking-wider">
+                    <span className="flex items-center gap-1.5">
+                      <FileText size={14} className="text-neutral-400" /> {article.source}
+                    </span>
+                    <span>{article.time}</span>
                   </div>
-                ))
-              ) : (
-                <div className="text-center py-8 text-neutral-400 italic text-sm">
-                  Loading source articles...
                 </div>
-              )}
+              ))}
             </div>
           </motion.div>
         )}
@@ -132,7 +114,7 @@ export const TimelineView = () => {
                 </div>
                 <div>
                   <p className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">Primary Source</p>
-                  <p className="text-sm font-bold text-neutral-700">{selectedArticle.source || selectedArticle.publisher || "Unknown"}</p>
+                  <p className="text-sm font-bold text-neutral-700">{selectedArticle.source}</p>
                 </div>
               </div>
               <div className="flex items-center gap-1 text-[#ea4c89] bg-[#ea4c89]/10 px-3 py-1.5 rounded-full border border-[#ea4c89]/20 text-xs font-bold">
@@ -140,15 +122,10 @@ export const TimelineView = () => {
               </div>
             </div>
 
+            {/* Note: Removed prose-invert so it renders beautifully in light mode */}
             <div className="prose prose-neutral prose-sm text-neutral-600 leading-relaxed max-w-none">
-              {selectedArticle.content ? (
-                <p>{selectedArticle.content}</p>
-              ) : (
-                <>
-                  <p>This is the full text of the article. It loads seamlessly within the existing flow without opening a new tab or a disruptive modal window. The data sources are explicitly tracked and verified to maintain absolute intelligence integrity.</p>
-                  <p>By keeping the user anchored to the main canvas, they can easily step backward through the flow—from Article to Date to Timeline to Cluster—without losing their context.</p>
-                </>
-              )}
+              <p>This is the full text of the article. It loads seamlessly within the existing flow without opening a new tab or a disruptive modal window. The data sources are explicitly tracked and verified to maintain absolute intelligence integrity.</p>
+              <p>By keeping the user anchored to the main canvas, they can easily step backward through the flow—from Article to Date to Timeline to Cluster—without losing their context.</p>
             </div>
           </motion.div>
         )}

@@ -23,28 +23,23 @@ const generateRadialPositions = (parentNode, childrenNodes, radius) => {
 
 const AnimatedRadialFlow = ({ rawNodes, rawEdges }) => {
   const { fitView, setCenter } = useReactFlow();
+  const { activeCategoryId, expandedNodes, activeLeafId } = useStoryStore();
   
-  // 🔥 LOGIC FIX: Pull activeStoryId instead of activeCategoryId
-  const { activeStoryId, expandedNodes, activeLeafId } = useStoryStore();
-  
-  // NEW: Track which node is currently being hovered
   const [hoveredNodeId, setHoveredNodeId] = useState(null);
 
   const { nodes, edges } = useMemo(() => {
-    // 🔥 LOGIC FIX: Check activeStoryId and ensure raw data exists from API
-    if (!activeStoryId || !rawNodes || !rawEdges) return { nodes: [], edges: [] };
+    if (!activeCategoryId || !rawNodes || !rawEdges || rawNodes.length === 0) return { nodes: [], edges: [] };
 
     let visibleNodes = [];
     const visibleEdges = [];
-    const processedParents = new Set(); // Prevent duplicates
+    const processedParents = new Set();
 
-    // 🔥 LOGIC FIX: Find the root using activeStoryId
-    const rootNode = rawNodes.find(n => n.id === activeStoryId);
+    // 🔥 MOCK DATA FIX: Find root by ID, OR just grab the very first node in mockStory.js!
+    const rootNode = rawNodes.find(n => n.id === activeCategoryId) || rawNodes[0];
     if (!rootNode) return { nodes: [], edges: [] };
     
     visibleNodes.push({ ...rootNode, position: { x: 0, y: 0 } });
 
-    // Helper function to process children dynamically
     const processNodeChildren = (parentId, isGhost) => {
       if (processedParents.has(parentId)) return;
       
@@ -56,7 +51,6 @@ const AnimatedRadialFlow = ({ rawNodes, rawEdges }) => {
       const childrenNodes = rawNodes.filter(n => childNodeIds.includes(n.id));
 
       if (childrenNodes.length > 0) {
-        // 🔥 LOGIC FIX: Safely fallback to 0 if API misses the level property
         const nodeLevel = parentNode.data?.level || 0;
         const dynamicRadius = Math.max(120, 350 - (nodeLevel * 100));
         
@@ -73,15 +67,15 @@ const AnimatedRadialFlow = ({ rawNodes, rawEdges }) => {
       processedParents.add(parentId);
     };
 
-    // 1. Process all permanently clicked/expanded nodes
+    // 🔥 MOCK DATA FIX: Always force the mock root node to be expanded so the graph shows!
+    processNodeChildren(rootNode.id, false); 
+    
     expandedNodes.forEach(id => processNodeChildren(id, false));
 
-    // 2. NEW: Process the hovered node to generate ghost previews
-    if (hoveredNodeId && !expandedNodes.includes(hoveredNodeId)) {
+    if (hoveredNodeId && !expandedNodes.includes(hoveredNodeId) && hoveredNodeId !== rootNode.id) {
       processNodeChildren(hoveredNodeId, true);
     }
 
-    // Inject dynamic leaf detection
     const finalNodes = visibleNodes.map(node => ({
       ...node,
       data: { 
@@ -91,15 +85,13 @@ const AnimatedRadialFlow = ({ rawNodes, rawEdges }) => {
     }));
 
     return { nodes: finalNodes, edges: visibleEdges };
-  // 🔥 LOGIC FIX: Dependency array uses activeStoryId
-  }, [activeStoryId, expandedNodes, rawNodes, rawEdges, hoveredNodeId]);
+  }, [activeCategoryId, expandedNodes, rawNodes, rawEdges, hoveredNodeId]);
 
   useEffect(() => {
     if (activeLeafId) {
       const leafNode = nodes.find(n => n.id === activeLeafId);
       if (leafNode) {
-        // 🔥 LOGIC FIX: zoom changed to 1.4 for the zoom-in effect
-        setCenter(leafNode.position.x, leafNode.position.y, { zoom: 1.4, duration: 800 });
+        setCenter(leafNode.position.x, leafNode.position.y, { zoom: 1.2, duration: 800 });
       }
     } else if (nodes.length > 0) {
       const timer = setTimeout(() => {
@@ -118,7 +110,6 @@ const AnimatedRadialFlow = ({ rawNodes, rawEdges }) => {
         style: { 
           stroke: '#737373', 
           strokeWidth: 2,
-          // Fade out the connecting lines for ghost nodes
           opacity: e.data?.isGhost ? 0.2 : 1,
           transition: 'opacity 0.3s ease'
         } 
@@ -127,7 +118,6 @@ const AnimatedRadialFlow = ({ rawNodes, rawEdges }) => {
       proOptions={{ hideAttribution: true }}
       minZoom={0.1}
       maxZoom={2}
-      // NEW: Mouse events to trigger the blur effect
       onNodeMouseEnter={(_, node) => setHoveredNodeId(node.id)}
       onNodeMouseLeave={() => setHoveredNodeId(null)}
     >
