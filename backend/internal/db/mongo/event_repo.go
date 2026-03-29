@@ -19,14 +19,23 @@ func NewEventRepository(db *mongo.Database) *EventRepository {
 	}
 }
 
-func (r *EventRepository) Create(ctx context.Context, event *models.Event) error {
-	event.Timestamp = time.Now()
-	_, err := r.collection.InsertOne(ctx, event)
+func (r *EventRepository) Create(event models.Event) error {
+	if event.Timestamp == 0 {
+		event.Timestamp = time.Now().Unix()
+	}
+	_, err := r.collection.InsertOne(context.Background(), event)
 	return err
 }
 
-func (r *EventRepository) GetByStoryID(ctx context.Context, storyID string) ([]models.Event, error) {
+func (r *EventRepository) GetByID(eventID string) (models.Event, error) {
+	var event models.Event
+	err := r.collection.FindOne(context.Background(), bson.M{"event_id": eventID}).Decode(&event)
+	return event, err
+}
+
+func (r *EventRepository) GetByStoryID(storyID string) ([]models.Event, error) {
 	var events []models.Event
+	ctx := context.Background()
 
 	// We filter by story_id to get the whole timeline
 	cursor, err := r.collection.Find(ctx, bson.M{"story_id": storyID})
@@ -40,4 +49,13 @@ func (r *EventRepository) GetByStoryID(ctx context.Context, storyID string) ([]m
 	}
 
 	return events, nil
+}
+
+func (r *EventRepository) UpdateStoryID(eventID string, storyID string) error {
+	_, err := r.collection.UpdateOne(
+		context.Background(),
+		bson.M{"event_id": eventID},
+		bson.M{"$set": bson.M{"story_id": storyID}},
+	)
+	return err
 }

@@ -5,8 +5,8 @@ import (
 	"context"
 	"time"
 
-	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
 type StoryRepository struct {
@@ -19,17 +19,38 @@ func NewStoryRepository(db *mongo.Database) *StoryRepository {
 	}
 }
 
-func (r *StoryRepository) Create(ctx context.Context, story *models.Story) error {
-	story.CreatedAt = time.Now()
-	story.UpdatedAt = time.Now()
-	_, err := r.collection.InsertOne(ctx, story)
+func (r *StoryRepository) Create(story models.Story) error {
+	now := time.Now()
+	if story.CreatedAt.IsZero() {
+		story.CreatedAt = now
+	}
+	story.UpdatedAt = now
+
+	_, err := r.collection.InsertOne(context.Background(), story)
 	return err
 }
 
-func (r *StoryRepository) GetByID(ctx context.Context, storyID string) (*models.Story, error) {
+func (r *StoryRepository) GetByID(storyID string) (models.Story, error) {
 	var story models.Story
-	err := r.collection.FindOne(ctx, map[string]string{"story_id": storyID}).Decode(&story)
-	return &story, err
+	err := r.collection.FindOne(context.Background(), bson.M{"story_id": storyID}).Decode(&story)
+	return story, err
+}
+
+func (r *StoryRepository) GetAll() ([]models.Story, error) {
+	ctx := context.Background()
+	var stories []models.Story
+
+	cursor, err := r.collection.Find(ctx, bson.M{})
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	if err := cursor.All(ctx, &stories); err != nil {
+		return nil, err
+	}
+
+	return stories, nil
 }
 
 // Update updates a story document in MongoDB

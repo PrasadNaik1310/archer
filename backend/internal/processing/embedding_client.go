@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
+	"strings"
 	"time"
 )
 
@@ -32,7 +34,7 @@ func GetEmbedding(text string) ([]float64, error) {
 	}
 
 	resp, err := httpClient.Post(
-		"http://localhost:8000/embed",
+		getEmbeddingServiceBaseURL()+"/embed",
 		"application/json",
 		bytes.NewBuffer(jsonData),
 	)
@@ -53,4 +55,13 @@ func GetEmbedding(text string) ([]float64, error) {
 	}
 
 	return result.Embedding, nil
+}
+
+func getEmbeddingServiceBaseURL() string {
+	baseURL := strings.TrimSpace(os.Getenv("EMBEDDING_SERVICE_URL"))
+	if baseURL == "" {
+		baseURL = "http://localhost:8000"
+	}
+
+	return strings.TrimRight(baseURL, "/")
 }

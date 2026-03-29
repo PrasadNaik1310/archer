@@ -1,0 +1,8 @@
+.git
+.gitignore
+.env
+server
+*.log
+tmp/
+__pycache__/
+embedding-service/__pycache__/

@@ -41,7 +41,7 @@ func (p *Processor) ProcessArticle(text string) []models.Chunk {
 			Entities:    entities,
 			Sentiment:   sentiment,
 			EmbeddingID: embeddingID,
-			Timestamp:   time.Now(),
+			Timestamp:   time.Now().Unix(),
 		}
 
 		result = append(result, chunk)

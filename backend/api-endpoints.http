@@ -1,0 +1,44 @@
+@baseUrl = http://localhost:8080
+@storyId = REPLACE_WITH_STORY_ID
+
+###
+# 1) Ingest article A
+POST {{baseUrl}}/ingest
+Content-Type: application/json
+
+{
+  "text": "Adani stocks fall sharply after Hindenburg report"
+}
+
+###
+# 2) Ingest article B (similar)
+POST {{baseUrl}}/ingest
+Content-Type: application/json
+
+{
+  "text": "Adani shares crash again as market reacts to Hindenburg allegations"
+}
+
+###
+# 3) Ingest article C (different topic)
+POST {{baseUrl}}/ingest
+Content-Type: application/json
+
+{
+  "text": "Apple launches new iPhone with improved battery life"
+}
+
+###
+# 4) Fetch story by ID
+# Replace @storyId above with a real Mongo story_id.
+GET {{baseUrl}}/story/{{storyId}}
+Accept: application/json
+
+###
+# 5) Negative test: missing text
+POST {{baseUrl}}/ingest
+Content-Type: application/json
+
+{
+  "text": ""
+}

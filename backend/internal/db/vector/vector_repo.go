@@ -4,7 +4,6 @@ import (
 	"context"
 
 	pinecone "github.com/pinecone-io/go-pinecone/v2/pinecone"
-	"google.golang.org/protobuf/types/known/structpb"
 )
 
 type Metadata struct {
@@ -22,6 +21,11 @@ type VectorRepo struct {
 	index *pinecone.IndexConnection
 }
 
+type Match struct {
+	ID    string
+	Score float32
+}
+
 func NewVectorRepo(client *Client) *VectorRepo {
 	return &VectorRepo{
 		index: client.Index,
@@ -32,22 +36,11 @@ func NewVectorRepo(client *Client) *VectorRepo {
 // STORE EMBEDDING
 // -----------------------------
 
-func (r *VectorRepo) StoreEmbedding(
-	ctx context.Context,
-	id string,
-	vector []float32,
-	metadata map[string]interface{},
-) error {
-	metadataStruct, err := structpb.NewStruct(metadata)
-	if err != nil {
-		return err
-	}
-
-	_, err = r.index.UpsertVectors(ctx, []*pinecone.Vector{
+func (r *VectorRepo) StoreEmbedding(chunkID string, vector []float32) error {
+	_, err := r.index.UpsertVectors(context.Background(), []*pinecone.Vector{
 		{
-			Id:       id,
-			Values:   vector,
-			Metadata: metadataStruct,
+			Id:     chunkID,
+			Values: vector,
 		},
 	})
 
@@ -58,21 +51,25 @@ func (r *VectorRepo) StoreEmbedding(
 // FIND SIMILAR
 // -----------------------------
 
-func (r *VectorRepo) FindSimilar(
-	ctx context.Context,
-	vector []float32,
-	topK int,
-) ([]*pinecone.ScoredVector, error) {
+func (r *VectorRepo) FindSimilar(vector []float32, topK int32) ([]Match, error) {
 
-	resp, err := r.index.QueryByVectorValues(ctx, &pinecone.QueryByVectorValuesRequest{
-		Vector:          vector,
-		TopK:            uint32(topK),
-		IncludeMetadata: true,
+	resp, err := r.index.QueryByVectorValues(context.Background(), &pinecone.QueryByVectorValuesRequest{
+		Vector: vector,
+		TopK:   uint32(topK),
 	})
 
 	if err != nil {
 		return nil, err
 	}
 
-	return resp.Matches, nil
+	matches := make([]Match, 0, len(resp.Matches))
+	for _, m := range resp.Matches {
+		matchID := ""
+		if m.Vector != nil {
+			matchID = m.Vector.Id
+		}
+		matches = append(matches, Match{ID: matchID, Score: m.Score})
+	}
+
+	return matches, nil
 }

@@ -1,12 +1,15 @@
 package main
 
 import (
-	
 	"fmt"
 	"log"
+	"os"
 
 	"PrasadNaik1310/archer/internal/api"
-
+	"PrasadNaik1310/archer/internal/db/mongo"
+	"PrasadNaik1310/archer/internal/db/vector"
+	"PrasadNaik1310/archer/internal/ingestion"
+	"PrasadNaik1310/archer/internal/processing"
 	"PrasadNaik1310/archer/internal/story"
 
 	"github.com/gin-gonic/gin"
@@ -14,37 +17,74 @@ import (
 )
 
 func main() {
-	// Support running from different working directories (e.g. backend/ or backend/cmd/server).
+
+	// Load .env from multiple paths
 	for _, envPath := range []string{".env", "../.env", "../../.env"} {
 		if err := godotenv.Load(envPath); err == nil {
 			break
 		}
 	}
 
-	// 1. Database Connection
-	client, err := mongo.NewClient()
+	mongoClient, err := mongo.NewClient()
 	if err != nil {
-		log.Fatalf("❌ Mongo Error: %v", err)
+		log.Fatalf("❌ failed to connect MongoDB: %v", err)
 	}
-	db := client.Conn.Database("Archer")
+	db := mongoClient.Conn.Database("Archer")
 
-	// 2. Initialize your "STRICT" Data Layer
-	sRepo := mongo.NewStoryRepository(db)
-	eRepo := mongo.NewEventRepository(db)
-	cRepo := mongo.NewChunkRepository(db)
+	vectorClient, err := vector.NewClient()
+	if err != nil {
+		log.Fatalf("❌ failed to connect Pinecone: %v", err)
+	}
 
-	// 3. Initialize the Service (The Brain)
-	storyService := story.NewService(sRepo, eRepo, cRepo)
+	storyRepo := mongo.NewStoryRepository(db)
+	eventRepo := mongo.NewEventRepository(db)
+	chunkRepo := mongo.NewChunkRepository(db)
+	vectorRepo := vector.NewVectorRepo(vectorClient)
 
-	// 4. Initialize the Handler (The Voice)
-	storyHandler := story.NewHandler(storyService)
+	pipeline := processing.NewPipeline(
+		processing.NewProcessor(),
+		chunkRepo,
+		eventRepo,
+		storyRepo,
+		vectorRepo,
+	)
+	ingestionService := ingestion.NewService(pipeline)
+	ingestionHandler := ingestion.NewHandler(ingestionService)
+	storyHandler := story.NewHandler(storyRepo, eventRepo, chunkRepo)
 
-	// 5. Setup Gin and Routes
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
+	allowedOrigin := os.Getenv("FRONTEND_ORIGIN")
+	if allowedOrigin == "" {
+		allowedOrigin = "https://archer-drab.vercel.app"
+	}
+
+	// Router
 	r := gin.Default()
-	api.SetupRoutes(r, storyHandler)
+	r.GET("/", func(c *gin.Context) {
+		c.JSON(200, gin.H{"status": "ok"})
+	})
 
-	fmt.Println("🚀 Archer API is LIVE on http://localhost:8080")
+	// 🔥 Add CORS (VERY IMPORTANT for Vercel frontend)
+	r.Use(func(c *gin.Context) {
+		c.Writer.Header().Set("Access-Control-Allow-Origin", allowedOrigin)
+		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "*")
 
-	// Start the server!
-	r.Run(":8080")
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(200)
+			return
+		}
+
+		c.Next()
+	})
+
+	api.SetupRoutes(r, storyHandler, ingestionHandler)
+
+	fmt.Printf("🚀 Archer API is LIVE on port %s\n", port)
+
+	r.Run(":" + port)
 }

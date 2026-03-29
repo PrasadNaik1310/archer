@@ -19,11 +19,26 @@ func NewChunkRepository(db *mongo.Database) *ChunkRepository {
 	}
 }
 
-func (r *ChunkRepository) Create(ctx context.Context, chunk *models.Chunk) error {
-	if chunk.Timestamp.IsZero() {
-		chunk.Timestamp = time.Now()
+func (r *ChunkRepository) Create(chunk models.Chunk) error {
+	if chunk.Timestamp == 0 {
+		chunk.Timestamp = time.Now().Unix()
 	}
-	_, err := r.collection.InsertOne(ctx, chunk)
+	_, err := r.collection.InsertOne(context.Background(), chunk)
+	return err
+}
+
+func (r *ChunkRepository) GetByID(chunkID string) (models.Chunk, error) {
+	var chunk models.Chunk
+	err := r.collection.FindOne(context.Background(), bson.M{"chunk_id": chunkID}).Decode(&chunk)
+	return chunk, err
+}
+
+func (r *ChunkRepository) UpdateEventID(chunkID string, eventID string) error {
+	_, err := r.collection.UpdateOne(
+		context.Background(),
+		bson.M{"chunk_id": chunkID},
+		bson.M{"$set": bson.M{"event_id": eventID}},
+	)
 	return err
 }
 

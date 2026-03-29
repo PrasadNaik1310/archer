@@ -42,13 +42,13 @@ func NewService(r *mongo.StoryRepository, e *mongo.EventRepository, c *mongo.Chu
 // GetFullStory fetches a story, all its events, and all chunks for those events
 func (s *Service) GetFullStory(ctx context.Context, storyID string) (*models.FullStoryResponse, error) {
 	// 1. Get the base Story info
-	story, err := s.repo.GetByID(ctx, storyID)
+	story, err := s.repo.GetByID(storyID)
 	if err != nil {
 		return nil, err
 	}
 
 	// 2. Get all Events linked to this Story
-	events, err := s.eventRepo.GetByStoryID(ctx, storyID)
+	events, err := s.eventRepo.GetByStoryID(storyID)
 	if err != nil {
 		return nil, err
 	}
@@ -67,7 +67,7 @@ func (s *Service) GetFullStory(ctx context.Context, storyID string) (*models.Ful
 
 	// 4. Return the complete package
 	return &models.FullStoryResponse{
-		Story:  *story,
+		Story:  story,
 		Events: timeline,
 	}, nil
 }
@@ -78,7 +78,7 @@ func (s *Service) CreateStory(ctx context.Context, story *models.Story) (*models
 	story.StoryID = uuid.New().String()
 
 	// 2. Your Repository handles the time.Now() logic
-	err := s.repo.Create(ctx, story)
+	err := s.repo.Create(*story)
 	if err != nil {
 		return nil, err
 	}

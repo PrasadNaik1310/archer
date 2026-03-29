@@ -21,7 +21,7 @@ func BuildTimeline(events []models.Event) []TimelineEvent {
 	for _, e := range events {
 		timeline = append(timeline, TimelineEvent{
 			EventID:   e.EventID,
-			Timestamp: e.Timestamp.Unix(),
+			Timestamp: e.Timestamp,
 			Summary:   e.Summary,
 			Entities:  e.Entities,
 			Sentiment: e.Sentiment,

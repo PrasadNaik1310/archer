@@ -1,19 +1,27 @@
 package story
 
 import (
+	"PrasadNaik1310/archer/internal/db/mongo"
 	"PrasadNaik1310/archer/internal/models"
 	"net/http"
+
 	"github.com/gin-gonic/gin"
 )
 
 // Handler handles the HTTP requests for Stories
 type Handler struct {
-	service *Service
+	storyRepo *mongo.StoryRepository
+	eventRepo *mongo.EventRepository
+	chunkRepo *mongo.ChunkRepository
 }
 
 // NewHandler creates a new instance of the Story Handler
-func NewHandler(s *Service) *Handler {
-	return &Handler{service: s}
+func NewHandler(storyRepo *mongo.StoryRepository, eventRepo *mongo.EventRepository, chunkRepo *mongo.ChunkRepository) *Handler {
+	return &Handler{
+		storyRepo: storyRepo,
+		eventRepo: eventRepo,
+		chunkRepo: chunkRepo,
+	}
 }
 
 // GetStory handles GET /stories/:id
@@ -25,16 +33,25 @@ func (h *Handler) GetStory(c *gin.Context) {
 		return
 	}
 
-	// 2. Call your "Super-Query" service logic
-	fullStory, err := h.service.GetFullStory(c.Request.Context(), storyID)
+	storyData, err := h.storyRepo.GetByID(storyID)
 	if err != nil {
-		// If story not found or DB error
 		c.JSON(http.StatusNotFound, gin.H{"error": "Story not found or database error"})
 		return
 	}
 
-	// 3. Return the beautiful nested JSON to the frontend
-	c.JSON(http.StatusOK, fullStory)
+	events, err := h.eventRepo.GetByStoryID(storyID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load story events"})
+		return
+	}
+
+	response, err := BuildStoryResponse(storyData, events, h.chunkRepo)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to build story response"})
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
 }
 
 // CreateStory handles POST /stories
@@ -47,28 +64,26 @@ func (h *Handler) CreateStory(c *gin.Context) {
 		return
 	}
 
-	// 2. Call the service to save it
-	createdStory, err := h.service.CreateStory(c.Request.Context(), &story)
+	err := h.storyRepo.Create(story)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create story"})
 		return
 	}
 
-	// 3. Return the created story (including its new StoryID)
-	c.JSON(http.StatusCreated, createdStory)
+	c.JSON(http.StatusCreated, story)
 }
 
 // UpdateStory handles PUT /api/v1/stories/:id
 func (h *Handler) UpdateStory(c *gin.Context) {
 	id := c.Param("id")
 	var story models.Story
-	
+
 	if err := c.ShouldBindJSON(&story); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON data"})
 		return
 	}
 
-	if err := h.service.UpdateStory(c.Request.Context(), id, &story); err != nil {
+	if err := h.storyRepo.Update(c.Request.Context(), id, &story); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update story"})
 		return
 	}
@@ -79,8 +94,8 @@ func (h *Handler) UpdateStory(c *gin.Context) {
 // DeleteStory handles DELETE /api/v1/stories/:id
 func (h *Handler) DeleteStory(c *gin.Context) {
 	id := c.Param("id")
-	
-	if err := h.service.DeleteStory(c.Request.Context(), id); err != nil {
+
+	if err := h.storyRepo.Delete(c.Request.Context(), id); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete story"})
 		return
 	}
