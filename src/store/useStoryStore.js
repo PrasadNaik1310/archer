@@ -30,10 +30,15 @@ export const useStoryStore = create((set, get) => ({
   // 1. Select a main category to initialize the cluster
   setCategory: (id) => set({ 
     activeCategoryId: id,
+    activeStoryId: null,
     expandedNodes: [], // We clear this; the API will set the root node to expand once loaded
     activeLeafId: null,
     selectedDate: null,
-    selectedArticle: null
+    selectedArticle: null,
+    currentStory: null,
+    eventDetails: null,
+    nodes: [],
+    edges: []
   }),
 
   // 2. Click a non-leaf node in the cluster to reveal hidden subtopics

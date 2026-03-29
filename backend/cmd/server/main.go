@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"PrasadNaik1310/archer/internal/api"
 	"PrasadNaik1310/archer/internal/db/mongo"
@@ -15,6 +16,55 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 )
+
+func parseAllowedOrigins(raw string) []string {
+	if strings.TrimSpace(raw) == "" {
+		return []string{
+			"https://archer-drab.vercel.app",
+			"https://*.vercel.app",
+			"http://localhost:5173",
+			"http://127.0.0.1:5173",
+		}
+	}
+
+	parts := strings.Split(raw, ",")
+	origins := make([]string, 0, len(parts))
+	for _, part := range parts {
+		origin := strings.TrimSpace(part)
+		if origin != "" {
+			origins = append(origins, origin)
+		}
+	}
+
+	return origins
+}
+
+func matchesOrigin(origin, pattern string) bool {
+	if pattern == "*" {
+		return true
+	}
+
+	if !strings.Contains(pattern, "*") {
+		return origin == pattern
+	}
+
+	segments := strings.Split(pattern, "*")
+	if len(segments) != 2 {
+		return false
+	}
+
+	return strings.HasPrefix(origin, segments[0]) && strings.HasSuffix(origin, segments[1])
+}
+
+func isAllowedOrigin(origin string, allowedOrigins []string) bool {
+	for _, pattern := range allowedOrigins {
+		if matchesOrigin(origin, pattern) {
+			return true
+		}
+	}
+
+	return false
+}
 
 func main() {
 
@@ -57,10 +107,7 @@ func main() {
 		port = "8080"
 	}
 
-	allowedOrigin := os.Getenv("FRONTEND_ORIGIN")
-	if allowedOrigin == "" {
-		allowedOrigin = "https://archer-drab.vercel.app"
-	}
+	allowedOrigins := parseAllowedOrigins(os.Getenv("FRONTEND_ORIGIN"))
 
 	// Router
 	r := gin.Default()
@@ -70,12 +117,23 @@ func main() {
 
 	// 🔥 Add CORS (VERY IMPORTANT for Vercel frontend)
 	r.Use(func(c *gin.Context) {
-		c.Writer.Header().Set("Access-Control-Allow-Origin", allowedOrigin)
-		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-		c.Writer.Header().Set("Access-Control-Allow-Headers", "*")
+		origin := c.GetHeader("Origin")
+		if origin != "" && isAllowedOrigin(origin, allowedOrigins) {
+			c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
+			c.Writer.Header().Set("Vary", "Origin")
+		}
+
+		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		c.Writer.Header().Set("Access-Control-Max-Age", "86400")
 
 		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(200)
+			if origin != "" && !isAllowedOrigin(origin, allowedOrigins) {
+				c.AbortWithStatus(403)
+				return
+			}
+
+			c.AbortWithStatus(204)
 			return
 		}
 
