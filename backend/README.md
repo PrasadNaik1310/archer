@@ -51,6 +51,12 @@ curl -s https://<api-url>/
 
 Expected: JSON with status fields.
 
+List all stories (for frontend discovery):
+
+```bash
+curl -s https://<api-url>/stories
+```
+
 Embedding endpoint (proxied internally via Go pipeline):
 
 ```bash
@@ -117,5 +123,34 @@ Optional fallback to full online model inference:
 
 ```bash
 EMBEDDING_MODE=online
+```
+
+### 6) Seed More Data For Category Coverage
+
+When using `EMBEDDING_MODE=precomputed`, every text you ingest must exist in your precomputed cache.
+
+1) Build a larger precomputed cache from category seed texts:
+
+```bash
+cd backend
+python scripts/precompute_embeddings.py \
+	--input configs/category_seed_texts.json \
+	--output embedding-service/precomputed_embeddings.json
+```
+
+2) Redeploy backend so updated `precomputed_embeddings.json` is live.
+
+3) Bulk-ingest those texts into your API:
+
+```bash
+python scripts/seed_ingest.py \
+	--api-url https://<api-url> \
+	--input configs/category_seed_texts.json
+```
+
+4) Verify stories were created and can be consumed by frontend:
+
+```bash
+curl -s https://<api-url>/stories
 ```
 

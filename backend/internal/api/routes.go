@@ -10,5 +10,6 @@ import (
 // SetupRoutes configures the API endpoints
 func SetupRoutes(r *gin.Engine, storyHandler *story.Handler, ingestionHandler *ingestion.Handler) {
 	r.POST("/ingest", ingestionHandler.Ingest)
+	r.GET("/stories", storyHandler.ListStories)
 	r.GET("/story/:id", storyHandler.GetStory)
 }

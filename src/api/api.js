@@ -1,13 +1,5 @@
 const BASE_URL = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
 
-function getConfiguredStoryIds() {
-  const envValue = import.meta.env.VITE_STORY_IDS || import.meta.env.VITE_STORY_ID || '';
-  return envValue
-    .split(',')
-    .map((id) => id.trim())
-    .filter(Boolean);
-}
-
 // Generic handler
 async function handleResponse(response) {
   if (!response.ok) {
@@ -17,21 +9,10 @@ async function handleResponse(response) {
   return response.json();
 }
 
-// Fetch stories by IDs configured in VITE_STORY_IDS or VITE_STORY_ID.
+// Fetch all stories from backend.
 export async function fetchStories() {
-  const storyIds = getConfiguredStoryIds();
-  if (!storyIds.length) {
-    return [];
-  }
-
-  const stories = await Promise.all(
-    storyIds.map(async (id) => {
-      const data = await fetchStoryById(id);
-      return data?.story || null;
-    })
-  );
-
-  return stories.filter(Boolean);
+  const res = await fetch(`${BASE_URL}/stories`);
+  return handleResponse(res);
 }
 
 // Fetch full story payload from backend.

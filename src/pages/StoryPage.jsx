@@ -5,6 +5,48 @@ import { GraphView } from '../graph/GraphView';
 import { TimelineView } from '../components/timeline/TimelineView';
 import { ArrowLeft, Sparkles, Search, Command, X } from 'lucide-react';
 
+const CATEGORY_KEYWORDS = {
+  'cat-corporate': ['governance', 'board', 'fraud', 'esg', 'audit', 'adani', 'sebi'],
+  'cat-markets': ['market', 'shares', 'stocks', 'ipo', 'finance', 'hindenburg', 'investor'],
+  'cat-tech': ['ai', 'chip', 'semiconductor', 'iphone', 'apple', 'cyber', 'software'],
+  'cat-geopolitics': ['election', 'trade', 'war', 'treaty', 'sanction', 'diplomatic'],
+  'cat-climate': ['climate', 'energy', 'renewable', 'solar', 'ev', 'emission', 'battery'],
+  'cat-health': ['biotech', 'pharma', 'fda', 'health', 'vaccine', 'clinical'],
+  'cat-consumer': ['retail', 'consumer', 'e-commerce', 'shopping', 'brand'],
+  'cat-media': ['media', 'streaming', 'social', 'entertainment', 'content'],
+};
+
+const scoreStoryForCategory = (story, categoryId) => {
+  const keywords = CATEGORY_KEYWORDS[categoryId] || [];
+  if (!keywords.length) {
+    return 0;
+  }
+
+  const titleText = (story?.title || '').toLowerCase();
+  const entitiesText = (story?.entities || []).join(' ').toLowerCase();
+  let score = 0;
+
+  keywords.forEach((keyword) => {
+    if (titleText.includes(keyword)) {
+      score += 3;
+    }
+    if (entitiesText.includes(keyword)) {
+      score += 2;
+    }
+  });
+
+  return score;
+};
+
+const stringHash = (value) => {
+  let hash = 0;
+  for (let i = 0; i < value.length; i += 1) {
+    hash = (hash << 5) - hash + value.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash);
+};
+
 // ==========================================
 // 1. CATEGORY SELECTOR (Clean Light Theme)
 // ==========================================
@@ -136,11 +178,21 @@ export const StoryPage = () => {
       stories.length > 0 &&
       !activeStoryId 
     ) {
-      const filtered = stories.filter(s =>
-        s.entities?.includes(activeCategoryId) || s.category === activeCategoryId
-      );
+      const ranked = stories
+        .map((storyItem) => ({
+          story: storyItem,
+          score: scoreStoryForCategory(storyItem, activeCategoryId),
+        }))
+        .sort((a, b) => b.score - a.score);
 
-      const storyToLoad = filtered[0] || stories[0];
+      let storyToLoad = ranked[0]?.story || stories[0];
+
+      // If no category signal exists yet, avoid always showing the exact same story.
+      if ((ranked[0]?.score || 0) === 0) {
+        const fallbackIndex = stringHash(activeCategoryId) % stories.length;
+        storyToLoad = stories[fallbackIndex];
+      }
+
       loadStoryById(storyToLoad.story_id);
     }
   }, [stories, activeCategoryId, activeStoryId, loadStoryById]);

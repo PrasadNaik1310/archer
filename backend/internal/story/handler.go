@@ -4,6 +4,7 @@ import (
 	"PrasadNaik1310/archer/internal/db/mongo"
 	"PrasadNaik1310/archer/internal/models"
 	"net/http"
+	"sort"
 
 	"github.com/gin-gonic/gin"
 )
@@ -22,6 +23,22 @@ func NewHandler(storyRepo *mongo.StoryRepository, eventRepo *mongo.EventReposito
 		eventRepo: eventRepo,
 		chunkRepo: chunkRepo,
 	}
+}
+
+// ListStories handles GET /stories
+func (h *Handler) ListStories(c *gin.Context) {
+	stories, err := h.storyRepo.GetAll()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load stories"})
+		return
+	}
+
+	// Newest first gives better defaults when frontend picks first fallback story.
+	sort.Slice(stories, func(i, j int) bool {
+		return stories[i].UpdatedAt.After(stories[j].UpdatedAt)
+	})
+
+	c.JSON(http.StatusOK, stories)
 }
 
 // GetStory handles GET /stories/:id
