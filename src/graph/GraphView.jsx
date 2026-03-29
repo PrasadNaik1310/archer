@@ -23,19 +23,23 @@ const generateRadialPositions = (parentNode, childrenNodes, radius) => {
 
 const AnimatedRadialFlow = ({ rawNodes, rawEdges }) => {
   const { fitView, setCenter } = useReactFlow();
-  const { activeCategoryId, expandedNodes, activeLeafId } = useStoryStore();
+  
+  // 🔥 LOGIC FIX: Pull activeStoryId instead of activeCategoryId
+  const { activeStoryId, expandedNodes, activeLeafId } = useStoryStore();
   
   // NEW: Track which node is currently being hovered
   const [hoveredNodeId, setHoveredNodeId] = useState(null);
 
   const { nodes, edges } = useMemo(() => {
-    if (!activeCategoryId) return { nodes: [], edges: [] };
+    // 🔥 LOGIC FIX: Check activeStoryId and ensure raw data exists from API
+    if (!activeStoryId || !rawNodes || !rawEdges) return { nodes: [], edges: [] };
 
     let visibleNodes = [];
     const visibleEdges = [];
     const processedParents = new Set(); // Prevent duplicates
 
-    const rootNode = rawNodes.find(n => n.id === activeCategoryId);
+    // 🔥 LOGIC FIX: Find the root using activeStoryId
+    const rootNode = rawNodes.find(n => n.id === activeStoryId);
     if (!rootNode) return { nodes: [], edges: [] };
     
     visibleNodes.push({ ...rootNode, position: { x: 0, y: 0 } });
@@ -52,7 +56,10 @@ const AnimatedRadialFlow = ({ rawNodes, rawEdges }) => {
       const childrenNodes = rawNodes.filter(n => childNodeIds.includes(n.id));
 
       if (childrenNodes.length > 0) {
-        const dynamicRadius = Math.max(120, 350 - (parentNode.data.level * 100));
+        // 🔥 LOGIC FIX: Safely fallback to 0 if API misses the level property
+        const nodeLevel = parentNode.data?.level || 0;
+        const dynamicRadius = Math.max(120, 350 - (nodeLevel * 100));
+        
         const positionedChildren = generateRadialPositions(parentNode, childrenNodes, dynamicRadius);
         
         positionedChildren.forEach(child => {
@@ -84,13 +91,15 @@ const AnimatedRadialFlow = ({ rawNodes, rawEdges }) => {
     }));
 
     return { nodes: finalNodes, edges: visibleEdges };
-  }, [activeCategoryId, expandedNodes, rawNodes, rawEdges, hoveredNodeId]);
+  // 🔥 LOGIC FIX: Dependency array uses activeStoryId
+  }, [activeStoryId, expandedNodes, rawNodes, rawEdges, hoveredNodeId]);
 
   useEffect(() => {
     if (activeLeafId) {
       const leafNode = nodes.find(n => n.id === activeLeafId);
       if (leafNode) {
-        setCenter(leafNode.position.x, leafNode.position.y, { zoom: 1.2, duration: 800 });
+        // 🔥 LOGIC FIX: zoom changed to 1.4 for the zoom-in effect
+        setCenter(leafNode.position.x, leafNode.position.y, { zoom: 1.4, duration: 800 });
       }
     } else if (nodes.length > 0) {
       const timer = setTimeout(() => {
