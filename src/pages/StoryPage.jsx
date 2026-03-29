@@ -1,11 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStoryStore } from '../store/useStoryStore';
 import { GraphView } from '../graph/GraphView';
 import { TimelineView } from '../components/timeline/TimelineView';
 import { ArrowLeft, Sparkles, Search, Command, X } from 'lucide-react';
-
-import { canvasNodes, canvasEdges } from '../data/mockStory';
 
 // ==========================================
 // 1. CATEGORY SELECTOR (Clean Light Theme)
@@ -110,7 +108,42 @@ const CategorySelector = () => {
 // 2. MAIN STORY PAGE ORCHESTRATOR
 // ==========================================
 export const StoryPage = () => {
-  const { activeCategoryId, activeLeafId, resetAll } = useStoryStore();
+  // 🔥 LOGIC UPDATE: Pulling data and actions from the API store
+  const { 
+    activeCategoryId, 
+    activeStoryId, // Required for the useEffect filter check
+    activeLeafId, 
+    resetAll,
+    loadStories,
+    loadStoryById,
+    stories,
+    nodes,
+    edges
+  } = useStoryStore();
+
+  // 🔥 LOGIC UPDATE: Load all stories when category is picked
+  useEffect(() => {
+    if (activeCategoryId) {
+      loadStories();
+    }
+  }, [activeCategoryId, loadStories]);
+
+  // 🔥 LOGIC UPDATE: Filter stories by category so we load the right specific root graph
+  useEffect(() => {
+    if (
+      activeCategoryId &&
+      stories &&
+      stories.length > 0 &&
+      !activeStoryId 
+    ) {
+      const filtered = stories.filter(s =>
+        s.entities?.includes(activeCategoryId) || s.category === activeCategoryId
+      );
+
+      const storyToLoad = filtered[0] || stories[0];
+      loadStoryById(storyToLoad.story_id);
+    }
+  }, [stories, activeCategoryId, activeStoryId, loadStoryById]);
 
   const handleCloseModal = () => {
     useStoryStore.setState({ activeLeafId: null, selectedDate: null, selectedArticle: null });
@@ -152,7 +185,8 @@ export const StoryPage = () => {
         transition={{ duration: 0.5, ease: [0.32, 0.72, 0, 1] }} 
         className="absolute inset-0 z-0"
       >
-        {activeCategoryId && <GraphView nodes={canvasNodes} edges={canvasEdges} />}
+        {/* 🔥 LOGIC UPDATE: Inject dynamic API nodes/edges, fallback to empty array if still loading */}
+        {activeCategoryId && nodes.length > 0 && <GraphView nodes={nodes} edges={edges} />}
       </motion.div>
 
       {/* CENTERED MODAL OVERLAY */}
