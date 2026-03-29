@@ -1,15 +1,16 @@
 ## Archer Backend Deployment (Render)
 
-This backend runs as two services:
+This backend runs as a single service/container:
 
-- Go API service (`archer-go-api`)
-- Python embedding + NER service (`archer-embedding-service`)
+- One Docker container running both:
+	- Go API (public, port `PORT`)
+	- Python embedding + NER service (internal, `EMBEDDING_INTERNAL_PORT`)
 
 The repository already includes:
 
 - `render.yaml`
 - `backend/Dockerfile`
-- `backend/embedding-service/Dockerfile`
+- `backend/scripts/start.sh`
 
 ### 1) Deploy with Render Blueprint
 
@@ -17,23 +18,16 @@ From Render Dashboard:
 
 1. New -> Blueprint
 2. Connect this repository
-3. Render reads `render.yaml` and creates both services
+3. Render reads `render.yaml` and creates one service
 
 ### 2) Set Required Environment Variables
 
-Set these in Render after services are created.
-
-For `archer-embedding-service`:
-
-```bash
-PORT=8000
-```
-
-For `archer-go-api`:
+Set these in Render for `archer-backend`:
 
 ```bash
 PORT=8080
-EMBEDDING_SERVICE_URL=https://<your-embedding-service>.onrender.com
+EMBEDDING_INTERNAL_PORT=8000
+EMBEDDING_SERVICE_URL=http://127.0.0.1:8000
 MONGO_URI=<your-mongodb-atlas-uri>
 PINECONE_API_KEY=<your-pinecone-api-key>
 PINECONE_INDEX_HOST=<your-pinecone-index-host>
@@ -42,36 +36,27 @@ FRONTEND_ORIGIN=https://<your-frontend-domain>
 
 Notes:
 
-- `EMBEDDING_SERVICE_URL` must point to the deployed Python service URL.
+- `EMBEDDING_SERVICE_URL` should stay `http://127.0.0.1:8000` for single-container mode.
 - `PINECONE_INDEX_HOST` should be host only (no protocol).
 
 ### 3) Verify Deployment
 
-Replace `<api-url>` and `<embedding-url>` with your actual Render service URLs.
+Replace `<api-url>` with your Render service URL.
 
-Health checks:
+Health check (Go API):
 
 ```bash
-curl -s https://<embedding-url>/
 curl -s https://<api-url>/
 ```
 
 Expected: JSON with status fields.
 
-Embedding endpoint:
+Embedding endpoint (proxied internally via Go pipeline):
 
 ```bash
-curl -s -X POST https://<embedding-url>/embed \
+curl -s -X POST https://<api-url>/ingest \
 	-H "Content-Type: application/json" \
-	-d '{"text":"hello world"}'
-```
-
-NER endpoint:
-
-```bash
-curl -s -X POST https://<embedding-url>/extract-entities \
-	-H "Content-Type: application/json" \
-	-d '{"text":"Apple launches new iPhone"}'
+	-d '{"text":"Apple launches new iPhone with better battery"}'
 ```
 
 Ingest + story flow:
@@ -99,6 +84,6 @@ curl -s https://<api-url>/story/<story_id>
 ### 4) Common Issues
 
 - `failed to connect Pinecone`: check `PINECONE_API_KEY` and `PINECONE_INDEX_HOST`
-- `dial tcp ... :8000`: `EMBEDDING_SERVICE_URL` is missing or incorrect
+- `dial tcp ... :8000`: internal embedding process failed, check service logs
 - CORS errors from frontend: set `FRONTEND_ORIGIN` to exact frontend origin
 
