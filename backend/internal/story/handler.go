@@ -57,3 +57,33 @@ func (h *Handler) CreateStory(c *gin.Context) {
 	// 3. Return the created story (including its new StoryID)
 	c.JSON(http.StatusCreated, createdStory)
 }
+
+// UpdateStory handles PUT /api/v1/stories/:id
+func (h *Handler) UpdateStory(c *gin.Context) {
+	id := c.Param("id")
+	var story models.Story
+	
+	if err := c.ShouldBindJSON(&story); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON data"})
+		return
+	}
+
+	if err := h.service.UpdateStory(c.Request.Context(), id, &story); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update story"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Story updated successfully"})
+}
+
+// DeleteStory handles DELETE /api/v1/stories/:id
+func (h *Handler) DeleteStory(c *gin.Context) {
+	id := c.Param("id")
+	
+	if err := h.service.DeleteStory(c.Request.Context(), id); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete story"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Story deleted successfully"})
+}
