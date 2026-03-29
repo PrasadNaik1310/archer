@@ -3,6 +3,7 @@ package story
 import (
 	"PrasadNaik1310/archer/internal/db/mongo"
 	"PrasadNaik1310/archer/internal/models"
+	"PrasadNaik1310/archer/internal/timeline"
 	"context"
 )
 
@@ -11,6 +12,20 @@ type Service struct {
 	repo      *mongo.StoryRepository
 	eventRepo *mongo.EventRepository
 	chunkRepo *mongo.ChunkRepository
+}
+
+type StoryResponse struct {
+	StoryID    string
+	Title      string
+	Entities   []string
+	Timeline   []timeline.TimelineEvent
+	Insight    string
+	Prediction Prediction
+}
+
+type Prediction struct {
+	Text       string
+	Confidence float64
 }
 
 // NewService creates a new instance of the Story Service
@@ -53,4 +68,26 @@ func (s *Service) GetFullStory(ctx context.Context, storyID string) (*models.Ful
 		Story:  *story,
 		Events: timeline,
 	}, nil
+}
+func BuildStoryResponse(
+	story models.Story,
+	events []models.Event,
+) StoryResponse {
+
+	timelineData := timeline.BuildTimeline(events)
+
+	return StoryResponse{
+		StoryID:  story.StoryID,
+		Title:    story.Title,
+		Entities: story.Entities,
+		Timeline: timelineData,
+
+		// mock for now
+		Insight: "Market sentiment turned negative after key developments",
+
+		Prediction: Prediction{
+			Text:       "Regulatory action likely soon",
+			Confidence: 0.75,
+		},
+	}
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	pinecone "github.com/pinecone-io/go-pinecone/v2/pinecone"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 type Metadata struct {
@@ -37,12 +38,16 @@ func (r *VectorRepo) StoreEmbedding(
 	vector []float32,
 	metadata map[string]interface{},
 ) error {
+	metadataStruct, err := structpb.NewStruct(metadata)
+	if err != nil {
+		return err
+	}
 
-	_, err := r.index.Upsert(ctx, []*pinecone.Vector{
+	_, err = r.index.UpsertVectors(ctx, []*pinecone.Vector{
 		{
 			Id:       id,
 			Values:   vector,
-			Metadata: metadata,
+			Metadata: metadataStruct,
 		},
 	})
 
@@ -59,9 +64,9 @@ func (r *VectorRepo) FindSimilar(
 	topK int,
 ) ([]*pinecone.ScoredVector, error) {
 
-	resp, err := r.index.Query(ctx, &pinecone.QueryRequest{
+	resp, err := r.index.QueryByVectorValues(ctx, &pinecone.QueryByVectorValuesRequest{
 		Vector:          vector,
-		TopK:            topK,
+		TopK:            uint32(topK),
 		IncludeMetadata: true,
 	})
 

@@ -2,6 +2,7 @@ package api
 
 import (
 	"PrasadNaik1310/archer/internal/story"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
@@ -20,4 +21,9 @@ func SetupRoutes(r *gin.Engine, storyHandler *story.Handler) {
 
 		// You can add more groups here later (e.g., /ingestion, /processing)
 	}
+}
+
+func RegisterRoutes() {
+
+	http.HandleFunc("/story", GetStoryHandler)
 }

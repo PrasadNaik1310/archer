@@ -12,16 +12,20 @@ type Client struct {
 
 func NewClient() (*Client, error) {
 	apiKey := os.Getenv("PINECONE_API_KEY")
+	indexHost := os.Getenv("PINECONE_INDEX_HOST")
 
-	pc, err := pinecone.NewClient(pinecone.Config{
-		ApiKey: apiKey,
-	})
+	pc, err := pinecone.NewClient(pinecone.NewClientParams{ApiKey: apiKey})
 
 	if err != nil {
 		return nil, err
 	}
 
-	index := pc.Index("news-index")
+	index, err := pc.Index(pinecone.NewIndexConnParams{
+		Host: indexHost,
+	})
+	if err != nil {
+		return nil, err
+	}
 
 	return &Client{
 		Index: index,

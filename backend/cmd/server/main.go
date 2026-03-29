@@ -6,7 +6,7 @@ import (
 	"log"
 
 	"PrasadNaik1310/archer/internal/api"
-	"PrasadNaik1310/archer/internal/db/mongo"
+
 	"PrasadNaik1310/archer/internal/story"
 
 	"github.com/gin-gonic/gin"
@@ -14,7 +14,12 @@ import (
 )
 
 func main() {
-	godotenv.Load()
+	// Support running from different working directories (e.g. backend/ or backend/cmd/server).
+	for _, envPath := range []string{".env", "../.env", "../../.env"} {
+		if err := godotenv.Load(envPath); err == nil {
+			break
+		}
+	}
 
 	// 1. Database Connection
 	client, err := mongo.NewClient()

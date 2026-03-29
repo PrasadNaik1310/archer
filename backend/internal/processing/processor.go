@@ -25,22 +25,23 @@ func (p *Processor) ProcessArticle(text string) []models.Chunk {
 
 		// 2. LLM processing
 		summary, entities, sentiment := AnalyzeText(chunkText)
+		chunkID := uuid.New().String()
+		embeddingID := ""
 
 		// 3. embedding
 		embedding, err := GetEmbedding(chunkText)
-		if err != nil {
-			// fallback (important for stability)
-			embedding = []float64{}
+		if err == nil && len(embedding) > 0 {
+			embeddingID = chunkID
 		}
 
 		chunk := models.Chunk{
-			ChunkID:   uuid.New().String(),
-			Text:      chunkText,
-			Summary:   summary,
-			Entities:  entities,
-			Sentiment: sentiment,
-			Embedding: embedding,
-			Timestamp: time.Now().Unix(),
+			ChunkID:     chunkID,
+			Text:        chunkText,
+			Summary:     summary,
+			Entities:    entities,
+			Sentiment:   sentiment,
+			EmbeddingID: embeddingID,
+			Timestamp:   time.Now(),
 		}
 
 		result = append(result, chunk)
