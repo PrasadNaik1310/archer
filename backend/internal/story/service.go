@@ -5,6 +5,8 @@ import (
 	"PrasadNaik1310/archer/internal/models"
 	"PrasadNaik1310/archer/internal/timeline"
 	"context"
+
+	"github.com/google/uuid"
 )
 
 // Service handles the business logic for Stories
@@ -69,25 +71,27 @@ func (s *Service) GetFullStory(ctx context.Context, storyID string) (*models.Ful
 		Events: timeline,
 	}, nil
 }
-func BuildStoryResponse(
-	story models.Story,
-	events []models.Event,
-) StoryResponse {
 
-	timelineData := timeline.BuildTimeline(events)
+// CreateStory generates a UUID and saves a new story
+func (s *Service) CreateStory(ctx context.Context, story *models.Story) (*models.Story, error) {
+	// 1. Generate a Unique ID (Requirement: STRICT string IDs)
+	story.StoryID = uuid.New().String()
 
-	return StoryResponse{
-		StoryID:  story.StoryID,
-		Title:    story.Title,
-		Entities: story.Entities,
-		Timeline: timelineData,
-
-		// mock for now
-		Insight: "Market sentiment turned negative after key developments",
-
-		Prediction: Prediction{
-			Text:       "Regulatory action likely soon",
-			Confidence: 0.75,
-		},
+	// 2. Your Repository handles the time.Now() logic
+	err := s.repo.Create(ctx, story)
+	if err != nil {
+		return nil, err
 	}
+
+	return story, nil
+}
+
+// UpdateStory updates an existing story by its ID
+func (s *Service) UpdateStory(ctx context.Context, id string, story *models.Story) error {
+	return s.repo.Update(ctx, id, story)
+}
+
+// DeleteStory removes a story from the database
+func (s *Service) DeleteStory(ctx context.Context, id string) error {
+	return s.repo.Delete(ctx, id)
 }

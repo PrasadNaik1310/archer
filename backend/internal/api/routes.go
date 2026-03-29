@@ -17,6 +17,9 @@ func SetupRoutes(r *gin.Engine, storyHandler *story.Handler) {
 		{
 			// This matches GET /api/v1/stories/story-101
 			stories.GET("/:id", storyHandler.GetStory)
+			stories.POST("/", storyHandler.CreateStory)
+			stories.PUT("/:id", storyHandler.UpdateStory)    // Update
+			stories.DELETE("/:id", storyHandler.DeleteStory) // Delete
 		}
 
 		// You can add more groups here later (e.g., /ingestion, /processing)
