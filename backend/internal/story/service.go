@@ -69,3 +69,13 @@ func (s *Service) CreateStory(ctx context.Context, story *models.Story) (*models
 
 	return story, nil
 }
+
+// UpdateStory updates an existing story by its ID
+func (s *Service) UpdateStory(ctx context.Context, id string, story *models.Story) error {
+	return s.repo.Update(ctx, id, story)
+}
+
+// DeleteStory removes a story from the database
+func (s *Service) DeleteStory(ctx context.Context, id string) error {
+	return s.repo.Delete(ctx, id)
+}
